@@ -3,7 +3,7 @@
 ########################################################################
 # Extension Manager/Repository config file for ext "table".
 #
-# Auto generated 10-09-2011 17:40
+# Auto generated 05-08-2010 17:36
 #
 # Manual updates:
 # Only the data in the array - everything else is removed by next
@@ -34,7 +34,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'CGLcompliance_note' => '',
 	'constraints' => array(
 		'depends' => array(
-			'php' => '4.0.0-0.0.0',
+			'php' => '5.2.0-0.0.0',
 			'typo3' => '3.5.0-0.0.0',
 		),
 		'conflicts' => array(
@@ -43,6 +43,8 @@ $EM_CONF[$_EXTKEY] = array(
 		),
 	),
 	'_md5_values_when_last_written' => 'a:8:{s:9:"ChangeLog";s:4:"8ca0";s:10:"README.txt";s:4:"ee2d";s:12:"ext_icon.gif";s:4:"b71f";s:17:"ext_localconf.php";s:4:"8886";s:25:"lib/class.tx_table_db.php";s:4:"5ca0";s:32:"lib/class.tx_table_db_access.php";s:4:"2f14";s:30:"lib/class.tx_table_db_base.php";s:4:"64cf";s:26:"lib/class.tx_table_div.php";s:4:"c35a";}',
+	'suggests' => array(
+	),
 );
 
 ?>

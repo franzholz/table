@@ -1,3 +1,21 @@
+2011-09-10 Franz Holzinger <franz@ttproducts.de>
+	* PHP 5.2 is the minimum requirement
+	* new feature: pidInList shall not be set to this in function getQueryConf when it has been empty
+
+2011-03-11 Franz Holzinger <franz@ttproducts.de>
+	* fix bug with HTML order confirmation emails. The contene of the subpart ###BASKET_ORDERCONFIRMATION_TEMPLATE### has not been inserted into the HML part of the email.
+
+2011-03-09 Franz Holzinger <franz@ttproducts.de>
+	* consider the recursive setup for the category list view
+	* keep always the singe product and article parameters, except with the link from the single view to list view if both are on the same page
+	* fix bug: if 2 plugins in the list view are filtered by the category, then the category object is not initialized with the modified config. Use the real config instead and not from the category object.
+
+2011-03-08 Franz Holzinger  <franz@ttproducts.de>
+	* some new features and bug fixes
+
+2010-08-05 Franz Holzinger  <franz@ttproducts.de>
+	* fix bug in substituteMarkerArray: replace all markers inside of a variant containing variants separated by semicolon.
+
 2010-06-21 Franz Holzinger  <franz@ttproducts.de>
 	* fix bug in substituteMarkerArray: do not delete an internal array of the $row. This is the bug when the amount of the basket could not be updated any more in tt_products.
 

@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2007-2009 Franz Holzinger <franz@ttproducts.de>
+*  (c) 2007-2011 Franz Holzinger <franz@ttproducts.de>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -41,14 +41,12 @@
 
 
 class tx_table_db_base {
-	var $name = ''; // overwrite this with the name of your table
-	var $fieldArray = array(); // overwrite this with your fields
+	public $name = ''; // overwrite this with the name of your table
+	public $fieldArray = array(); // overwrite this with your fields
 
-	function init()	{
+	public function init()	{
 
 	}
-
-
 }
 
 

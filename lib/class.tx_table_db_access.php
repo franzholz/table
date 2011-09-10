@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2005-2008 Franz Holzinger <contact@fholzinger.com>
+*  (c) 2005-2011 Franz Holzinger <franz@ttproducts.de>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -31,21 +31,21 @@
  *
  * $Id$
  *
- * @author	Franz Holzinger <contact@fholzinger.com>
+ * @author	Franz Holzinger <franz@ttproducts.de>
  * @package TYPO3
  * @subpackage table
  *
- *  
+ *
  */
- 
+
  require_once(PATH_t3lib.'class.t3lib_div.php');
- 
+
 
 class tx_table_db_access {
-	var $queryFieldArray;
-	var $tableArray;
-	var $where_clause;
-	var $enableFields;
+	public $queryFieldArray;
+	public $tableArray;
+	public $where_clause;
+	public $enableFields;
 
 
 	/**
@@ -55,8 +55,8 @@ class tx_table_db_access {
 	 * @param	string		type of the fields: select, groupBy, orderBy
 	 * @param	array		fields to set
 	 * @return	void
-	 */	
-	function prepareFields ($table, $type, $fields) {
+	 */
+	public function prepareFields ($table, $type, $fields) {
 		$fieldArray = explode (',', $fields);
 		if ($fields == '*') {
 			$this->queryFieldArray[$type][$table->name] = $table->tableFieldArray;
@@ -77,12 +77,12 @@ class tx_table_db_access {
 	 * @param	string		coparator like '='
 	 * @param	string		value for the field
 	 * @return	void
-	 */	
-	function prepareWhereFields ($table, $field, $comparator, $value) {
+	 */
+	public function prepareWhereFields ($table, $field, $comparator, $value) {
 		global $TYPO3_DB;
 
 		$tmpArray = $table->tableFieldArray[$field];
-		if ($this->where_clause)	{
+		if ($this->where_clause) {
 			$this->where_clause .= ' AND ';
 		}
 		$this->where_clause .= key($tmpArray).'.'.current($tmpArray).$comparator.$TYPO3_DB->fullQuoteStr($value, $table);
@@ -96,8 +96,8 @@ class tx_table_db_access {
 	 * @param	object		Table object from which to select. This is what comes right after "FROM ...". Required value.
 	 * @param	string		enable where clause
 	 * @return	void
-	 */	
-	function prepareEnableFields ($table, $value='') {
+	 */
+	public function prepareEnableFields ($table, $value='') {
 		if ($value)	{
 			$this->enableFields = $value;
 		} else {
@@ -113,7 +113,7 @@ class tx_table_db_access {
 	 * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
- 	function exec_SELECTquery($where='',$limit='')	{
+ 	public function exec_SELECTquery($where='',$limit='') {
  		global $TYPO3_DB;
 
 		$select_fields = '';
