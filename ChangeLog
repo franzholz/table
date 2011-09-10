@@ -1,0 +1,94 @@
+2010-06-21 Franz Holzinger  <franz@ttproducts.de>
+	* fix bug in substituteMarkerArray: do not delete an internal array of the $row. This is the bug when the amount of the basket could not be updated any more in tt_products.
+
+2010-05-10 Franz Holzinger  <franz@ttproducts.de>
+	* fix bug in transformSelect: detect if there is already an alias used and do not duplicate it
+
+2010-04-06 Franz Holzinger  <franz@ttproducts.de>
+	* fix bug with PHP 5.3: replace split by explode or t3lib_div::trimExplode or preg_split
+
+2010-02-08 Franz Holzinger  <franz@ttproducts.de>
+	* fix bug in method transformOrderby where a wrong strlen has been executed on an array
+
+2009-07-31 Franz Holzinger  <franz@ttproducts.de>
+	* undo the last change with alias in transformWhere because all fields might need a translation table
+
+2009-07-31 Franz Holzinger  <franz@ttproducts.de>
+	* do not change an already present alias in transformWhere
+
+2009-07-31 Franz Holzinger  <franz@ttproducts.de>
+	* support of config type group for the translation reference key
+
+2009-07-29 Franz Holzinger  <franz@ttproducts.de>
+	* consider language table in method transformWhere even if a table name or alias has already been set
+
+2009-07-10 Franz Holzinger  <franz@ttproducts.de>
+	* support for queries with text fields which consist of round brackets ()
+
+2009-06-26 Franz Holzinger  <franz@ttproducts.de>
+	* consider the required fields in method transformSelect because this can be code dependant and have been set later
+
+2009-05-21 Franz Holzinger  <franz@ttproducts.de>
+	* fix memory bugs in PHP 5.2.3 - see comments 'PHP 5.2.1 needs this'
+
+2009-05-09 Franz Holzinger  <franz@ttproducts.de>
+	* enhance method transformLanguage to allow a JOIN to the language table
+	* new parameter $excludeArray in getAdditionalTables to allow to exclude some tables
+	* new method getLangAlias to get the alias of the language table
+
+2009-04-30 Franz Holzinger  <franz@ttproducts.de>
+	* new method bFieldExists to check if a field exists for a table. The info is taken from $TCA.
+
+2009-03-13 Franz Holzinger  <franz@ttproducts.de>
+	* new method transformLanguage to add the table and where clause for a language table
+
+2009-02-16 Franz Holzinger  <franz@ttproducts.de>
+	* add parameter $aliasPostfix as a postfix to the table alias
+
+2009-01-03 Franz Holzinger  <franz@ttproducts.de>
+	* rename getAliasName to getAlias
+
+2008-12-31 Franz Holzinger  <contact@fholzinger.com>
+	* new function getEnableFieldArray: similar to enableFields, however the field array is returned
+	* allow the COUNT over a field
+	* fix bug with " in SQL where clause in function prepareWhereFields
+	' fix bug in transformOrderby: non TCA fields must be considered and the table name added
+
+2008-09-17 Franz Holzinger  <contact@fholzinger.com>
+	* remove unneccessary loop from enableFields and add table as parameter
+
+2008-09-06 Franz Holzinger  <contact@fholzinger.com>
+	* use function setForeignUidArray inside of setTCAFieldArray
+
+2008-06-21 Franz Holzinger  <contact@fholzinger.com>
+	* remove debug output
+
+2008-06-20 Franz Holzinger  <contact@fholzinger.com>
+	* Fix bug with not working enable fields in class tx_table_db_access
+
+2008-06-02 Franz Holzinger  <contact@fholzinger.com>
+	* The formerly set $this->tableFieldArray entries which have been set by default must be reset in the beginning of the function setDefaultFieldArray. Otherwise they would still be required (e.g. timestamp in static_countries).
+
+2008-05-21 Franz Holzinger  <kontakt@fholzinger.com>
+	* fix PHP5 issues
+	* do not insert blanks ' ' in the checked where clause because REGEXP would not work
+
+2007-07-20 Franz Holzinger  <kontakt@fholzinger.com>
+	* fix bug with PHP 5.2.1 and lost local array variables
+	* use correct alias for translation table with sys_language_uid
+
+2006-09-27 Franz Holzinger  <kontakt@fholzinger.com>
+	* some modifications for tables with language table
+	* corrections for OUTER LEFT JOIN queries
+
+2006-09-20 Franz Holzinger  <kontakt@fholzinger.com>
+	* additive where clauses in tx_table_db_access
+
+2006-06-07 Franz Holzinger  <kontakt@fholzinger.com>
+	* pay attention to hidden fields
+
+2005-10-28 Franz Holzinger  <kontakt@fholzinger.com>
+	* correct error with tableFieldArray
+
+2005-09-25 Franz Holzinger  <kontakt@fholzinger.com>
+	* Initial release
