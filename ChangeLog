@@ -1,3 +1,7 @@
+2012-05-10 Franz Holzinger <franz@ttproducts.de>
+	* fix bug: do not add required fields which are not in the TCA
+	* fix bug: missing language tables must be added in exec_SELECTquery
+
 2011-09-10 Franz Holzinger <franz@ttproducts.de>
 	* PHP 5.2 is the minimum requirement
 	* new feature: pidInList shall not be set to this in function getQueryConf when it has been empty
