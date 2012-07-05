@@ -38,7 +38,7 @@
  *
  */
 
- require_once(PATH_t3lib.'class.t3lib_div.php');
+ require_once(PATH_t3lib . 'class.t3lib_div.php');
 
 
 class tx_table_db_access {
@@ -61,7 +61,7 @@ class tx_table_db_access {
 		if ($fields == '*') {
 			$this->queryFieldArray[$type][$table->name] = $table->tableFieldArray;
 		} else {
-			foreach ($fieldArray as $key=>$field) {
+			foreach ($fieldArray as $key => $field) {
 				$this->queryFieldArray[$type][$table->name][$field] = array($table->name => $field);
 			}
 		}
@@ -85,8 +85,8 @@ class tx_table_db_access {
 		if ($this->where_clause) {
 			$this->where_clause .= ' AND ';
 		}
-		$this->where_clause .= key($tmpArray).'.'.current($tmpArray).$comparator.$TYPO3_DB->fullQuoteStr($value, $table);
-		$this->tableArray[$table->name] = &$table;
+		$this->where_clause .= key($tmpArray) . '.' . current($tmpArray) . $comparator . $TYPO3_DB->fullQuoteStr($value, $table);
+		$this->tableArray[$table->name] = $table;
 	}
 
 
@@ -97,8 +97,8 @@ class tx_table_db_access {
 	 * @param	string		enable where clause
 	 * @return	void
 	 */
-	public function prepareEnableFields ($table, $value='') {
-		if ($value)	{
+	public function prepareEnableFields ($table, $value = '') {
+		if ($value) {
 			$this->enableFields = $value;
 		} else {
 			$this->enableFields = $table->enableFields();
@@ -113,16 +113,18 @@ class tx_table_db_access {
 	 * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
- 	public function exec_SELECTquery($where='',$limit='') {
+ 	public function exec_SELECTquery($where = '', $limit = '') {
  		global $TYPO3_DB;
 
 		$select_fields = '';
 		$comma = '';
-		if (!is_array($this->queryFieldArray['select']) || !is_array($this->tableArray)) return NULL;
+		if (!is_array($this->queryFieldArray['select']) || !is_array($this->tableArray)) {
+			return NULL;
+		}
 
 		foreach ($this->queryFieldArray['select'] as $tablename => $fieldArray) {
 			foreach ($fieldArray as $origField => $tableField) {
-				$select_fields.=$comma.key($tableField).'.'.current($tableField);
+				$select_fields .= $comma . key($tableField) . '.' . current($tableField);
 				$comma = ',';
 			}
 		}
@@ -139,7 +141,7 @@ class tx_table_db_access {
 			$comma = '';
 			foreach ($this->queryFieldArray['groupBy'] as $tablename => $fieldArray) {
 				foreach ($fieldArray as $origField => $tableField) {
-					$groupBy .= $comma.key($tableField).'.'.current($tableField);
+					$groupBy .= $comma . key($tableField) . '.' . current($tableField);
 					$comma = ',';
 				}
 			}
@@ -150,22 +152,22 @@ class tx_table_db_access {
 			$comma = '';
 			foreach ($this->queryFieldArray['orderBy'] as $tablename => $fieldArray) {
 				foreach ($fieldArray as $origField => $tableField) {
-					$groupBy .= $comma.key($tableField).'.'.current($tableField);
+					$groupBy .= $comma . key($tableField) . '.' . current($tableField);
 					$comma = ',';
 				}
 			}
 		}
 
 		$where_clause = $where;
-		if ($this->where_clause)	{
-			if ($where_clause)	{
-				$where_clause .=  ' AND '.$this->where_clause;
+		if ($this->where_clause) {
+			if ($where_clause) {
+				$where_clause .=  ' AND ' . $this->where_clause;
 			} else {
 				$where_clause = $this->where_clause;
 			}
 		}
-		if ($this->enableFields)	{
-			if ($where_clause)	{
+		if ($this->enableFields) {
+			if ($where_clause) {
 				$where_clause .= $this->enableFields;
 			} else {
 				$where_clause = $this->enableFields;

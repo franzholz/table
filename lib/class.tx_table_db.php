@@ -150,12 +150,22 @@ class tx_table_db {
 
 
 	public function getField ($field) {
-		$rc = $field;
+		$result = $field;
 		$fieldArray = $this->tableFieldArray[$field];
 		if (isset($fieldArray) && is_array($fieldArray)) {
-			$rc = current($fieldArray);
+			$result = current($fieldArray);
 		}
-		return $rc;
+		return $result;
+	}
+
+
+	public function getTableFromField ($field) {
+		$result = FALSE;
+		$fieldArray = $this->tableFieldArray[$field];
+		if (isset($fieldArray) && is_array($fieldArray)) {
+			$result = key($fieldArray);
+		}
+		return $result;
 	}
 
 
@@ -336,18 +346,18 @@ class tx_table_db {
 		t3lib_div::loadTCA($table);
 		if (is_array($TCA[$table]) && is_array($TCA[$table][$part])) {
 			if ($field) {
-				$rc = $TCA[$table][$part][$field];
+				$result = $TCA[$table][$part][$field];
 			} else {
-				$rc = $TCA[$table][$part];
+				$result = $TCA[$table][$part];
 			}
 		}
-		return $rc;
+		return $result;
 	}
 
 
 	public function bFieldExists ($field) {
 		$field = $this->getField($field);
-		$fieldTca = &$this->getTCA('columns' ,$field);
+		$fieldTca = $this->getTCA('columns', $field);
 		return (isset($fieldTca));
 	}
 
@@ -381,6 +391,50 @@ class tx_table_db {
 	}
 
 
+	/**
+	 * Generates a search where clause based on the input search words (AND operation - all search words must be found in record.)
+	 * Example: The $sw is "content management, system" (from an input form) and the $searchFieldList is "bodytext,header" then the output will be ' AND (bodytext LIKE "%content%" OR header LIKE "%content%") AND (bodytext LIKE "%management%" OR header LIKE "%management%") AND (bodytext LIKE "%system%" OR header LIKE "%system%")'
+	 *
+	 * @param	string		The search words. These will be separated by space and comma.
+	 * @param	string		The fields to search in
+	 * @return	string		The WHERE clause.
+	 */
+	public function searchWhere ($sw, $searchFieldList) {
+		global $TYPO3_DB;
+
+		$where = '';
+		if ($sw) {
+			$tablename = $this->getName();
+			$languageName = $this->getLangName();
+			$aliasArray = array();
+			$aliasArray[$tablename] = $this->getAlias();
+			$aliasArray[$languageName] = $this->getLangAlias();
+			$searchFields = explode(',', $searchFieldList);
+			$kw = preg_split('/[ ,]/', $sw);
+
+			foreach ($kw as $val) {
+				$val = trim($val);
+				$where_p = array();
+				if (strlen($val) >= 2) {
+					$valueArray = array();
+					$valueArray[$tablename] = $TYPO3_DB->escapeStrForLike($TYPO3_DB->quoteStr($val, $tablename), $tablename);
+					$valueArray[$languageName] = $TYPO3_DB->escapeStrForLike($TYPO3_DB->quoteStr($val, $languageName), $languageName);
+					foreach ($searchFields as $field) {
+						$theTablename = $this->getTableFromField($field);
+						if ($theTablename != '') {
+							$where_p[] = $aliasArray[$theTablename] . '.' . $field . ' LIKE \'%' . $valueArray[$theTablename] . '%\'';
+						}
+					}
+				}
+				if (count($where_p)) {
+					$where .= ' AND (' . implode(' OR ', $where_p) . ')';
+				}
+			}
+		}
+		return $where;
+	}
+
+
 	public function setTCAFieldArray (
 		$table,
 		$tableAlias = '',
@@ -405,6 +459,7 @@ class tx_table_db {
 
 			$tmp = ($tableAlias ? $tableAlias : $table);
 			$this->aliasArray[$table] = $tmp;
+
 			t3lib_div::loadTCA($table);
 			reset($this->aliasArray);
 			$tmp = key($this->aliasArray);
@@ -425,7 +480,6 @@ class tx_table_db {
 				}
 			}
 
-			$theName = $this->getName();
 			if ($TCA[$table]['columns']) {
 				foreach ($TCA[$table]['columns'] as $field => $fieldArray) {
 					$this->tableFieldArray[$field] = array ($table => $field);
@@ -797,8 +851,8 @@ class tx_table_db {
 			$languageTable = $this->getLangName();
 
 			if ($languageTable != '') {
-				if (strpos($table,$languageTable)===FALSE)	{
-					if ($bUseJoin && $table != '')	{
+				if (strpos($table, $languageTable) === FALSE) {
+					if ($bUseJoin && $table != '') {
 						$foreignUidArray = $this->getForeignUidArray();
 						$tableNew = ' LEFT OUTER JOIN ' . $languageTable . ' ' . $this->aliasArray[$languageTable] . ' ON ' . $this->getAliasName() . '.uid=' . $this->aliasArray[$languageTable] . '.' . $foreignUidArray[$languageTable];
 						$table .= $tableNew . $newWhere;
@@ -1249,7 +1303,14 @@ class tx_table_db {
 			return FALSE;
 		}
 
-		$queryParts = $this->getQuery($queryParts['SELECT'], $queryParts['WHERE'], $queryParts['GROUPBY'], $queryParts['ORDERBY'], $queryParts['LIMIT']);
+		$queryParts =
+			$this->getQuery(
+				$queryParts['SELECT'],
+				$queryParts['WHERE'],
+				$queryParts['GROUPBY'],
+				$queryParts['ORDERBY'],
+				$queryParts['LIMIT']
+			);
 		return $queryParts;
 	}
 
@@ -1292,7 +1353,7 @@ class tx_table_db {
 	 * @link http://typo3.org/doc.0.html?&tx_extrepmgm_pi1[extUid]=270&tx_extrepmgm_pi1[tocEl]=318&cHash=a98cb4e7e6
 	 */
 	public function getQueryConf (
-		&$cObj,
+		$cObj,
 		$table,
 		$conf,
 		$returnQueryArray = FALSE
@@ -1392,7 +1453,7 @@ class tx_table_db {
 	 * @see getQuery()
 	 */
 	public function getWhere (
-		&$cObj,
+		$cObj,
 		$table,
 		$conf,
 		$returnQueryArray = FALSE

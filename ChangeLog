@@ -1,3 +1,7 @@
+2012-07-05 Franz Holzinger <franz@ttproducts.de>
+	* new feature: use searchWhere from tslib_content but consider the language table
+	* fix bug: make it PHP 5.4 compliant and remove the address operator before objects
+
 2012-05-10 Franz Holzinger <franz@ttproducts.de>
 	* fix bug: do not add required fields which are not in the TCA
 	* fix bug: missing language tables must be added in exec_SELECTquery
