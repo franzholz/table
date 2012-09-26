@@ -397,9 +397,11 @@ class tx_table_db {
 	 *
 	 * @param	string		The search words. These will be separated by space and comma.
 	 * @param	string		The fields to search in
+	 * @param	boolean		If the language table shall be used for the fields which need a translation
+	 * @param	string		character intermediate regular expression. This will be inserted between all characters of the search words
 	 * @return	string		The WHERE clause.
 	 */
-	public function searchWhere ($sw, $searchFieldList) {
+	public function searchWhere ($sw, $searchFieldList, $bUseLanguage = TRUE, $charRegExp = '') {
 		global $TYPO3_DB;
 
 		$where = '';
@@ -420,12 +422,28 @@ class tx_table_db {
 					$valueArray[$tablename] = $TYPO3_DB->escapeStrForLike($TYPO3_DB->quoteStr($val, $tablename), $tablename);
 					$valueArray[$languageName] = $TYPO3_DB->escapeStrForLike($TYPO3_DB->quoteStr($val, $languageName), $languageName);
 					foreach ($searchFields as $field) {
-						$theTablename = $this->getTableFromField($field);
+						$theTablename = $tablename;
+						if ($bUseLanguage) {
+							$theTablename = $this->getTableFromField($field);
+						}
+
 						if ($theTablename != '') {
-							$where_p[] = $aliasArray[$theTablename] . '.' . $field . ' LIKE \'%' . $valueArray[$theTablename] . '%\'';
+							$part2 = '';
+							if ($charRegExp != '') {
+								$comparatorArray = array();
+								$value2 = $valueArray[$theTablename];
+								for ($i = 0; $i < strlen($value2); $i++) {
+									$comparatorArray[] = $value2{$i};
+								}
+								$part2 = 'REGEXP \'' . implode($charRegExp, $comparatorArray) . '\'';
+							} else {
+								$part2 = 'LIKE \'%' . $valueArray[$theTablename] . '%\'';
+							}
+							$where_p[] = $aliasArray[$theTablename] . '.' . $field . ' ' . $part2;
 						}
 					}
 				}
+
 				if (count($where_p)) {
 					$where .= ' AND (' . implode(' OR ', $where_p) . ')';
 				}
