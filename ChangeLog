@@ -1,4 +1,8 @@
 
+
+2012-10-10 Franz Holzinger <franz@ttproducts.de>
+	* new feature: add support of SQL functions to transformOrderby and make it usable for GROUP BY
+
 2012-09-26 Franz Holzinger <franz@ttproducts.de>
 	* new feature: enhance searchWhere with regular expression
 

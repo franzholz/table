@@ -975,43 +975,66 @@ class tx_table_db {
 			return FALSE;
 		}
 
-		$rc = '';
+		$result = '';
 		if ($clause == '') {
 			// nothing
 		} else {
 			$dummy1 = $this->tableFieldArray; // PHP 5.2.1 needs this
-			$fieldArray = t3lib_div::trimExplode(',', $clause);
+			$parts = t3lib_div::trimExplode(',', $clause);
 
-			foreach ($fieldArray as $k => $fieldExpression) {
-				$spacePos = strpos ($fieldExpression,' ');
-				if ($spacePos === FALSE) {
+			foreach ($parts as $k => $fieldExpression) {
+				$spaceStartPos = strpos($fieldExpression, ' ');
+				$bracketStartPos = strpos($fieldExpression, '(');
+				$bracketEndPos = strpos($fieldExpression, ')');
+				$function = '';
+
+				if ($spaceStartPos === FALSE) {
 					$field = $fieldExpression;
 					unset($order);
 				} else {
-					$field = substr($fieldExpression,0,$spacePos);
-					$order = substr($fieldExpression, $spacePos);
+					$field = substr($fieldExpression, 0, $spaceStartPos);
+					$order = substr($fieldExpression, $spaceStartPos);
 				}
+
+				if ($bracketStartPos !== FALSE) {
+					$expression = $field;
+					$field = substr($expression, $bracketStartPos + 1);
+					$function = substr($expression, 0, $bracketStartPos);
+				}
+
+				if ($bracketEndPos !== FALSE) {
+					$expression = $field;
+					$field = substr($expression, 0, $bracketEndPos);
+				}
+
 				$fieldArray = t3lib_div::trimExplode ('.', $field);
 
 				// no table has been specified?
-				if ((count($fieldArray) == 1) && isset($this->tableFieldArray[$field]) && is_array($this->tableFieldArray[$field])) { // TODO: check this
+				if (
+					(count($fieldArray) == 1) &&
+					isset($this->tableFieldArray[$field]) &&
+					is_array($this->tableFieldArray[$field])
+				) { // TODO: check this
 					$tableName = key($this->tableFieldArray[$field]);
 				} else if (strlen($this->noTCAFieldArray[$field])) {
 					$tableName = $this->getName();
 				} else {
 					$tableName = '';
 				}
+
+				$fieldTmp = '';
 				if (strlen($tableName)) {
 					$fieldTmp = $this->aliasArray[$tableName] . $aliasPostfix . '.' . $field;
 				} else {
 					$fieldTmp = $field;
 				}
 
-				$rcArray[] = $fieldTmp.($order ? ' '.$order : '');
+				$resultArray[] = ($function ? $function . '('  : '' ) . $fieldTmp . ($bracketEndPos ? ')' : '') . ($order ? ' ' . $order : '');
 			}
-			$rc = implode (',', $rcArray);
+			$result = implode (',', $resultArray);
 		}
-		return $rc;
+
+		return $result;
 	}
 
 
