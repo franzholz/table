@@ -1,4 +1,5 @@
-
+2012-10-12 Franz Holzinger <franz@ttproducts.de>
+	* fix bug with closing bracked in order by functions
 
 2012-10-10 Franz Holzinger <franz@ttproducts.de>
 	* new feature: add support of SQL functions to transformOrderby and make it usable for GROUP BY

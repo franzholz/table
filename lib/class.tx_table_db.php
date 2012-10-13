@@ -1004,7 +1004,8 @@ class tx_table_db {
 
 				if ($bracketEndPos !== FALSE) {
 					$expression = $field;
-					$field = substr($expression, 0, $bracketEndPos);
+					$fieldBracketEndPos = strpos($expression, ')');
+					$field = substr($expression, 0, $fieldBracketEndPos);
 				}
 
 				$fieldArray = t3lib_div::trimExplode ('.', $field);
