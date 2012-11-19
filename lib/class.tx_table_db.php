@@ -1386,13 +1386,13 @@ class tx_table_db {
 	 * Creates and returns a SELECT query for records from $table and with conditions based on the configuration in the $conf array
 	 * Implements the "select" function in TypoScript
 	 *
+	 * @param	object		cObject
 	 * @param	string		The table names
 	 * @param	array		The TypoScript configuration properties
 	 * @param	boolean		If set, the function will return the query not as a string but array with the various parts. RECOMMENDED!
 	 * @return	mixed		A SELECT query if $returnQueryArray is FALSE, otherwise the SELECT query in an array as parts.
 	 * @access private
 	 * @see CONTENT(), numRows()
-	 * @link http://typo3.org/doc.0.html?&tx_extrepmgm_pi1[extUid]=270&tx_extrepmgm_pi1[tocEl]=318&cHash=a98cb4e7e6
 	 */
 	public function getQueryConf (
 		$cObj,
@@ -1400,52 +1400,112 @@ class tx_table_db {
 		$conf,
 		$returnQueryArray = FALSE
 	) {
-		global $TYPO3_DB;
-
-		$rc = '';
 		if ($this->needsInit()) {
 			return FALSE;
 		}
 
-		$dummy1 = $this->aliasArray; // PHP 5.2.1 needs this
+		$result = '';
 
-		// $addTables = $this->getAdditionalTables();
-		// $table = ($table && $addTables ? $table.','.$addTables : $table);
-			// Construct WHERE clause:
+			// Resolve stdWrap in these properties first
+		$properties = array(
+			'pidInList', 'uidInList', 'languageField', 'selectFields', 'max', 'begin', 'groupBy', 'orderBy', 'join', 'leftjoin', 'rightjoin'
+		);
+		foreach ($properties as $property) {
+			$conf[$property] = isset($conf[$property . '.'])
+					? trim($this->stdWrap($conf[$property], $conf[$property . '.']))
+					: trim($conf[$property]);
+			if ($conf[$property] === '') {
+				unset($conf[$property]);
+			}
+			if (isset($conf[$property . '.'])) {
+					// stdWrapping already done, so remove the sub-array
+				unset($conf[$property . '.']);
+			}
+		}
+
 		$conf['pidInList'] = trim($cObj->stdWrap($conf['pidInList'], $conf['pidInList.']));
+
+
+			// Handle PDO-style named parameter markers first
+		$queryMarkers = $cObj->getQueryMarkers($table, $conf);
+
+			// replace the markers in the non-stdWrap properties
+		foreach ($queryMarkers as $marker => $markerValue) {
+			$properties = array(
+				'uidInList', 'selectFields', 'where', 'max', 'begin', 'groupBy', 'orderBy', 'join', 'leftjoin', 'rightjoin'
+			);
+			foreach ($properties as $property) {
+				if ($conf[$property]) {
+					$conf[$property] = str_replace('###' . $marker . '###', $markerValue, $conf[$property]);
+				}
+			}
+		}
+
+			// Construct WHERE clause:
+
+			// Handle recursive function for the pidInList
+		if (isset($conf['recursive'])) {
+			$conf['recursive'] = intval($conf['recursive']);
+			if ($conf['recursive'] > 0) {
+				$pidList = '';
+				foreach (explode(',', $conf['pidInList']) as $value) {
+					if ($value === 'this') {
+						$value = $GLOBALS['TSFE']->id;
+					}
+					$pidList .= $value . ',' . $cObj->getTreeList($value, $conf['recursive']);
+				}
+				$conf['pidInList'] = trim($pidList, ',');
+			}
+		}
+
+		if (!strcmp($conf['pidInList'], '')) {
+			$conf['pidInList'] = 'this';
+		}
 
 		$queryParts = $this->getWhere($cObj, $table, $conf, TRUE);
 		if ($queryParts === FALSE) {
 			return FALSE;
 		}
 
-			// Fields:
-		$queryParts['SELECT'] = $conf['selectFields'] ? $conf['selectFields'] : '*';
+ 		$queryParts['SELECT'] = $conf['selectFields'] ? $conf['selectFields'] : '*';
 
 			// Setting LIMIT:
 		if ($conf['max'] || $conf['begin']) {
 			$error = 0;
 
-				// Finding the total number of records, if used:
-			if (strstr(strtolower($conf['begin'].$conf['max']),'total')) {
-				$res = $TYPO3_DB->exec_SELECTquery('uid', $table, $queryParts['WHERE'], $queryParts['GROUPBY']);
-				if ($error = $TYPO3_DB->sql_error()) {
+			// Finding the total number of records, if used:
+			if (strstr(strtolower($conf['begin'] . $conf['max']), 'total')) {
+				$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('count(*)', $table, $queryParts['WHERE'], $queryParts['GROUPBY']);
+				if ($error = $GLOBALS['TYPO3_DB']->sql_error()) {
 					$GLOBALS['TT']->setTSlogMessage($error);
 				} else {
-					$total = $TYPO3_DB->sql_num_rows($res);
-					$conf['max'] = eregi_replace('total', (string)$total, $conf['max']);
-					$conf['begin'] = eregi_replace('total', (string)$total, $conf['begin']);
+					$row = $GLOBALS['TYPO3_DB']->sql_fetch_row($res);
+					$conf['max'] = str_ireplace('total', $row[0], $conf['max']);
+					$conf['begin'] = str_ireplace('total', $row[0], $conf['begin']);
 				}
+				$GLOBALS['TYPO3_DB']->sql_free_result($res);
 			}
 			if (!$error) {
-				$conf['begin'] = t3lib_div::intInRange(ceil($cObj->calc($conf['begin'])),0);
-				$conf['max'] = t3lib_div::intInRange(ceil($cObj->calc($conf['max'])),0);
+				$begin = ceil($cObj->calc($conf['begin']));
+				$conf['begin'] = (
+					class_exists('t3lib_utility_Math') ?
+						t3lib_utility_Math::forceIntegerInRange($begin, 0) :
+						t3lib_div::intInRange($begin, 0)
+				);
+
+				$max = ceil($cObj->calc($conf['max']));
+				$conf['max'] = (
+					class_exists('t3lib_utility_Math') ?
+						t3lib_utility_Math::forceIntegerInRange($max, 0) :
+						t3lib_div::intInRange($max, 0)
+				);
+
 				if ($conf['begin'] && !$conf['max']) {
 					$conf['max'] = 100000;
 				}
 
 				if ($conf['begin'] && $conf['max']) {
-					$queryParts['LIMIT'] = $conf['begin'].','.$conf['max'];
+					$queryParts['LIMIT'] = $conf['begin'] . ',' . $conf['max'];
 				} elseif (!$conf['begin'] && $conf['max']) {
 					$queryParts['LIMIT'] = $conf['max'];
 				}
@@ -1455,20 +1515,28 @@ class tx_table_db {
 		if (!$error) {
 
 				// Setting up tablejoins:
-			$joinPart='';
+			$joinPart = '';
 			if ($conf['join']) {
-				$joinPart = 'JOIN ' .trim($conf['join']);
+				$joinPart = 'JOIN ' . $conf['join'];
 			} elseif ($conf['leftjoin']) {
-				$joinPart = 'LEFT OUTER JOIN ' .trim($conf['leftjoin']);
+				$joinPart = 'LEFT OUTER JOIN ' . $conf['leftjoin'];
 			} elseif ($conf['rightjoin']) {
-				$joinPart = 'RIGHT OUTER JOIN ' .trim($conf['rightjoin']);
+				$joinPart = 'RIGHT OUTER JOIN ' . $conf['rightjoin'];
 			}
 
 				// Compile and return query:
-			$fromTable = $table.' '.$this->aliasArray[$table];
-			$queryParts['FROM'] = trim($fromTable.' '.$joinPart).($conf['from'] ? ','.$conf['from'] :'' );
+			$fromTable = $table.' ' . $this->aliasArray[$table];
+			$queryParts['FROM'] = trim($fromTable . ' ' . $joinPart) . ($conf['from'] ? ',' . $conf['from']  : '');
 
-			$query = $TYPO3_DB->SELECTquery(
+				// replace the markers in the queryParts to handle stdWrap
+				// enabled properties
+			foreach ($queryMarkers as $marker => $markerValue) {
+				foreach ($queryParts as $queryPartKey => &$queryPartValue) {
+					$queryPartValue = str_replace('###' . $marker . '###', $markerValue, $queryPartValue);
+				}
+				unset($queryPartValue);
+			}
+			$query = $GLOBALS['TYPO3_DB']->SELECTquery(
 				$queryParts['SELECT'],
 				$queryParts['FROM'],
 				$queryParts['WHERE'],
@@ -1477,9 +1545,9 @@ class tx_table_db {
 				$queryParts['LIMIT']
 			);
 
-			$rc = $returnQueryArray ? $queryParts : $query;
+			$result = $returnQueryArray ? $queryParts : $query;
 		}
-		return $rc;
+		return $result;
 	}
 
 

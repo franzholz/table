@@ -1,3 +1,8 @@
+
+2012-11-19 Franz Holzinger <franz@ttproducts.de>
+	* replace deprecated t3lib_div::intInRange by t3lib_utility_Math::forceIntegerInRange in function getQueryConf
+	* enhance function getQueryConf with support for markers
+
 2012-10-12 Franz Holzinger <franz@ttproducts.de>
 	* fix bug with closing bracked in order by functions
 
