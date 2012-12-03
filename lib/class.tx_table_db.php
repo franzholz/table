@@ -484,6 +484,7 @@ class tx_table_db {
 
 			if (is_array($this->defaultFieldArray)) {
 
+
 				foreach ($this->defaultFieldArray as $field => $realField) {
 					if (
 						$field != 'uid' &&
@@ -500,14 +501,17 @@ class tx_table_db {
 
 			if ($TCA[$table]['columns']) {
 				foreach ($TCA[$table]['columns'] as $field => $fieldArray) {
-					$this->tableFieldArray[$field] = array ($table => $field);
 
-						// is there a foreign key to the first table?
-					if (
-						($fieldArray['config']['type'] == 'select' || $fieldArray['config']['type'] == 'group') &&
-						($foreignTable = $fieldArray['config']['foreign_table']) != ''
-					) {
-						$this->setForeignUidArray($table, $field);
+					if ($fieldArray['config']['type'] != 'passthrough' ) {
+						$this->tableFieldArray[$field] = array ($table => $field);
+
+							// is there a foreign key to the first table?
+						if (
+							($fieldArray['config']['type'] == 'select' || $fieldArray['config']['type'] == 'group') &&
+							($foreignTable = $fieldArray['config']['foreign_table']) != ''
+						) {
+							$this->setForeignUidArray($table, $field);
+						}
 					}
 				}
 			}
@@ -906,7 +910,11 @@ class tx_table_db {
 		$dummy1 = $this->aliasArray; // PHP 5.2.1 needs this
 		$dummy2 = $this->tableFieldArray; // PHP 5.2.1 needs this
 
-		if (is_array($this->aliasArray) && count($this->aliasArray) && is_array($this->tableFieldArray)) {
+		if (
+			is_array($this->aliasArray) &&
+			count($this->aliasArray) &&
+			is_array($this->tableFieldArray)
+		) {
 			if ($clause == '*') {
 				foreach ($this->tableFieldArray as $productsfield => $fieldArray) {
 					foreach ($fieldArray as $table => $field) {
@@ -914,8 +922,10 @@ class tx_table_db {
 					}
 				}
 
-				if (is_array($this->requiredFieldArray) && count($this->requiredFieldArray)) {
-
+				if (
+					is_array($this->requiredFieldArray) &&
+					count($this->requiredFieldArray)
+				) {
 					$table = $this->getName();
 
 					foreach ($this->requiredFieldArray as $k => $field) {
@@ -1403,7 +1413,6 @@ class tx_table_db {
 		if ($this->needsInit()) {
 			return FALSE;
 		}
-
 		$result = '';
 
 			// Resolve stdWrap in these properties first
@@ -1422,9 +1431,7 @@ class tx_table_db {
 				unset($conf[$property . '.']);
 			}
 		}
-
 		$conf['pidInList'] = trim($cObj->stdWrap($conf['pidInList'], $conf['pidInList.']));
-
 
 			// Handle PDO-style named parameter markers first
 		$queryMarkers = $cObj->getQueryMarkers($table, $conf);
@@ -1536,6 +1543,7 @@ class tx_table_db {
 				}
 				unset($queryPartValue);
 			}
+
 			$query = $GLOBALS['TYPO3_DB']->SELECTquery(
 				$queryParts['SELECT'],
 				$queryParts['FROM'],
