@@ -37,13 +37,12 @@
  * @subpackage table
  *
  * Typically instantiated like this:
- * $this->table = t3lib_div::makeInstance('tx_table_db');
+ * $this->table = tx_div2007_core::makeInstance('tx_table_db');
  * $this->table-> ... set your parameters here
  * $this->table->init();
  *
  */
 
-require_once(PATH_t3lib.'class.t3lib_div.php');
 
 class tx_table_db {
 	public $tableFieldArray = array(); // array of fields for each table
@@ -537,13 +536,8 @@ class tx_table_db {
 
 			$this->bNeedsInit = FALSE;
 		} else {
-			if (class_exists('t3lib_utility_Debug')) {
-				$tmp = t3lib_utility_Debug::debugTrail();
-				t3lib_utility_Debug::debug($tmp);
-			} else {
-				$tmp = t3lib_div::debug_trail();
-				t3lib_div::debug($tmp);
-			}
+			$tmp = tx_div2007_core::debug_trail();
+			tx_div2007_core::debug($tmp);
 			die ('The function setTCAFieldArray() is called with an empty table name as argument.');
 		}
 	}
@@ -620,13 +614,8 @@ class tx_table_db {
 				}
 			}
 		} else {
-			if (class_exists('t3lib_utility_Debug')) {
-				$tmp = t3lib_utility_Debug::debugTrail();
-				t3lib_utility_Debug::debug($tmp);
-			} else {
-				$tmp = t3lib_div::debug_trail();
-				t3lib_div::debug($tmp);
-			}
+			$tmp = tx_div2007_core::debug_trail();
+			tx_div2007_core::debug($tmp);
 			die ('NO entry in the $TCA-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
 		}
 		$fieldArray = array_unique($fieldArray);
@@ -712,13 +701,8 @@ class tx_table_db {
 				}
 			}
 		} else {
-			if (class_exists('t3lib_utility_Debug')) {
-				$tmp = t3lib_utility_Debug::debugTrail();
-				t3lib_utility_Debug::debug($tmp);
-			} else {
-				$tmp = t3lib_div::debug_trail();
-				t3lib_div::debug($tmp);
-			}
+			$tmp = tx_div2007_core::debug_trail();
+			tx_div2007_core::debug($tmp);
 			die ('NO entry in the $TCA-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
 		}
 		$this->enableFields = $query;
@@ -1151,7 +1135,7 @@ class tx_table_db {
 			// Call all changeBasket hooks
 		if (is_array ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow'])) {
 			foreach  ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow'] as $classRef) {
-				$hookObj= &t3lib_div::getUserObj($classRef);
+				$hookObj= t3lib_div::getUserObj($classRef);
 				if (method_exists($hookObj, 'transformRow')) {
 					$hookObj->transformRow($this, $row);
 				}
@@ -1494,18 +1478,9 @@ class tx_table_db {
 			}
 			if (!$error) {
 				$begin = ceil($cObj->calc($conf['begin']));
-				$conf['begin'] = (
-					class_exists('t3lib_utility_Math') ?
-						t3lib_utility_Math::forceIntegerInRange($begin, 0) :
-						t3lib_div::intInRange($begin, 0)
-				);
-
+				$conf['begin'] = tx_div2007_core::intInRange($begin, 0);
 				$max = ceil($cObj->calc($conf['max']));
-				$conf['max'] = (
-					class_exists('t3lib_utility_Math') ?
-						t3lib_utility_Math::forceIntegerInRange($max, 0) :
-						t3lib_div::intInRange($max, 0)
-				);
+				$conf['max'] = tx_div2007_core::intInRange($max, 0);
 
 				if ($conf['begin'] && !$conf['max']) {
 					$conf['max'] = 100000;

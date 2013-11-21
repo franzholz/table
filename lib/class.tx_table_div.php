@@ -54,17 +54,16 @@ class tx_table_div {
 	 * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
- 	public function exec_SELECTquery($select_fields, $from_table, $where_clause, $groupBy = '', $orderBy = '',$limit = '')	{
- 		global $TYPO3_DB;
+	public function exec_SELECTquery($select_fields, $from_table, $where_clause, $groupBy = '', $orderBy = '',$limit = '') {
+		global $TYPO3_DB;
 
-	 	$TYPO3_DB->exec_SELECTquery($select_fields, $from_table, '1=1' . $where_clause, $groupBy, $orderBy, $limit);
-	 	}
+	$TYPO3_DB->exec_SELECTquery($select_fields, $from_table, '1=1' . $where_clause, $groupBy, $orderBy, $limit);
+	 }
 
 }
 
 
-
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/table/lib/class.tx_table_div.php'])	{
+if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/table/lib/class.tx_table_div.php']) {
 	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/table/lib/class.tx_table_div.php']);
 }
 

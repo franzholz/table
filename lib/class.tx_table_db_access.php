@@ -38,8 +38,6 @@
  *
  */
 
- require_once(PATH_t3lib . 'class.t3lib_div.php');
-
 
 class tx_table_db_access {
 	public $queryFieldArray;
@@ -113,7 +111,7 @@ class tx_table_db_access {
 	 * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
- 	public function exec_SELECTquery($where = '', $limit = '') {
+ 	public function exec_SELECTquery ($where = '', $limit = '') {
  		global $TYPO3_DB;
 
 		$select_fields = '';
