@@ -37,7 +37,7 @@
  * @subpackage table
  *
  * Typically instantiated like this:
- * $this->table = tx_div2007_core::makeInstance('tx_table_db');
+ * $this->table = t3lib_div::makeInstance('tx_table_db');
  * $this->table-> ... set your parameters here
  * $this->table->init();
  *
@@ -320,15 +320,20 @@ class tx_table_db {
 		$part,
 		$field = ''
 	) {
-		global $TCA;
-
+		$typoVersion = tx_div2007_core::getTypoVersion();
 		$table = $this->getName();
-		t3lib_div::loadTCA($table);
-		if (is_array($TCA[$table]) && is_array($TCA[$table][$part])) {
+		if ($typoVersion < '6001000') {
+			t3lib_div::loadTCA($table);
+		}
+
+		if (
+			is_array($GLOBALS['TCA'][$table]) &&
+			is_array($GLOBALS['TCA'][$table][$part])
+		) {
 			if ($field) {
-				$rc = $TCA[$table][$part][$field];
+				$rc = $GLOBALS['TCA'][$table][$part][$field];
 			} else {
-				$rc = $TCA[$table][$part];
+				$rc = $GLOBALS['TCA'][$table][$part];
 			}
 		}
 		return $rc;
@@ -339,15 +344,20 @@ class tx_table_db {
 		$part,
 		$field = ''
 	) {
-		global $TCA;
-
+		$typoVersion = tx_div2007_core::getTypoVersion();
 		$table = $this->langname;
-		t3lib_div::loadTCA($table);
-		if (is_array($TCA[$table]) && is_array($TCA[$table][$part])) {
+		if ($typoVersion < '6001000') {
+			t3lib_div::loadTCA($table);
+		}
+
+		if (
+			is_array($GLOBALS['TCA'][$table]) &&
+			is_array($GLOBALS['TCA'][$table][$part])
+		) {
 			if ($field) {
-				$result = $TCA[$table][$part][$field];
+				$result = $GLOBALS['TCA'][$table][$part][$field];
 			} else {
-				$result = $TCA[$table][$part];
+				$result = $GLOBALS['TCA'][$table][$part];
 			}
 		}
 		return $result;
@@ -457,7 +467,7 @@ class tx_table_db {
 		$tableAlias = '',
 		$bSetTablename = TRUE
 	) {
-		global $TCA, $TSFE;
+		global $TSFE;
 
 		if ($table != '') {
 			$dummy1 = $this->aliasArray; // PHP 5.2.1 needs this
@@ -477,7 +487,11 @@ class tx_table_db {
 			$tmp = ($tableAlias ? $tableAlias : $table);
 			$this->aliasArray[$table] = $tmp;
 
-			t3lib_div::loadTCA($table);
+			$typoVersion = tx_div2007_core::getTypoVersion();
+			if ($typoVersion < '6001000') {
+				t3lib_div::loadTCA($table);
+			}
+
 			reset($this->aliasArray);
 			$tmp = key($this->aliasArray);
 
@@ -498,15 +512,21 @@ class tx_table_db {
 				}
 			}
 
-			if ($TCA[$table]['columns']) {
-				foreach ($TCA[$table]['columns'] as $field => $fieldArray) {
+			if ($GLOBALS['TCA'][$table]['columns']) {
+				foreach ($GLOBALS['TCA'][$table]['columns'] as $field => $fieldArray) {
 
-					if ($fieldArray['config']['type'] != 'passthrough' ) {
+					if (
+						$fieldArray['config']['type'] != 'passthrough' &&
+						$fieldArray['config']['db'] != 'passthrough'
+					) {
 						$this->tableFieldArray[$field] = array ($table => $field);
 
 							// is there a foreign key to the first table?
 						if (
-							($fieldArray['config']['type'] == 'select' || $fieldArray['config']['type'] == 'group') &&
+							(
+								$fieldArray['config']['type'] == 'select' ||
+								$fieldArray['config']['type'] == 'group'
+							) &&
 							($foreignTable = $fieldArray['config']['foreign_table']) != ''
 						) {
 							$this->setForeignUidArray($table, $field);
@@ -524,7 +544,7 @@ class tx_table_db {
 						$field &&
 						!isset($this->tableFieldArray[$field]) &&
 						$field != 'uid' &&
-						isset($TCA[$table]['columns'][$field])
+						isset($GLOBALS['TCA'][$table]['columns'][$field])
 					) {
 						$this->tableFieldArray[$field] = array ($table => $field);
 					}
@@ -536,7 +556,7 @@ class tx_table_db {
 
 			$this->bNeedsInit = FALSE;
 		} else {
-			$tmp = tx_div2007_core::debug_trail();
+			$tmp = tx_div2007_core::debugTrail();
 			tx_div2007_core::debug($tmp);
 			die ('The function setTCAFieldArray() is called with an empty table name as argument.');
 		}
@@ -614,9 +634,9 @@ class tx_table_db {
 				}
 			}
 		} else {
-			$tmp = tx_div2007_core::debug_trail();
+			$tmp = tx_div2007_core::debugTrail();
 			tx_div2007_core::debug($tmp);
-			die ('NO entry in the $TCA-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
+			die ('NO entry in the $GLOBALS[\'TCA\']-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
 		}
 		$fieldArray = array_unique($fieldArray);
 		return $fieldArray;
@@ -625,7 +645,7 @@ class tx_table_db {
 
 	/**
 	 * Returns a part of a WHERE clause which will filter out records with start/end times or hidden/fe_groups fields set to values that should de-select them according to the current time, preview settings or user login. Definitely a frontend function.
-	 * Is using the $TCA arrays "ctrl" part where the key "enablefields" determines for each table which of these features applies to that table.
+	 * Is using the $GLOBALS['TCA'] arrays "ctrl" part where the key "enablefields" determines for each table which of these features applies to that table.
 	 * The alias table name gets used
 	 *
 	 * @param	integer		If $show_hidden is set (0/1), any hidden-fields in records are ignored. NOTICE: If you call this function, consider what to do with the show_hidden parameter. Maybe it should be set? See tslib_cObj->enableFields where it's implemented correctly.
@@ -701,9 +721,9 @@ class tx_table_db {
 				}
 			}
 		} else {
-			$tmp = tx_div2007_core::debug_trail();
+			$tmp = tx_div2007_core::debugTrail();
 			tx_div2007_core::debug($tmp);
-			die ('NO entry in the $TCA-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
+			die ('NO entry in the $GLOBALS[\'TCA\']-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
 		}
 		$this->enableFields = $query;
 
@@ -1551,7 +1571,7 @@ class tx_table_db {
 		$conf,
 		$returnQueryArray = FALSE
 	) {
-		global $TCA, $TSFE, $TYPO3_DB;
+		global $TSFE, $TYPO3_DB;
 
 		if ($this->needsInit()) {
 			return FALSE;
@@ -1608,7 +1628,12 @@ class tx_table_db {
 		}
 
 		if ($conf['languageField']) {
-			if ($TSFE->sys_language_contentOL && $TCA[$table] && $TCA[$table]['ctrl']['languageField'] && $TCA[$table]['ctrl']['transOrigPointerField']) {
+			if (
+				$TSFE->sys_language_contentOL &&
+				$GLOBALS['TCA'][$table] &&
+				$GLOBALS['TCA'][$table]['ctrl']['languageField'] &&
+				$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']
+			) {
 					// Sys language content is set to zero/-1 - and it is expected that whatever routine processes the output will OVERLAY the records with localized versions!
 				$sys_language_content = '0,-1';
 			} else {

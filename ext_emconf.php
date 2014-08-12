@@ -2,20 +2,15 @@
 
 /***************************************************************
  * Extension Manager/Repository config file for ext "table".
- *
- * Auto generated 04-12-2012 18:08
- *
- * Manual updates:
- * Only the data in the array - everything else is removed by next
- * writing. "version" and "dependencies" must not be touched!
  ***************************************************************/
+
 
 $EM_CONF[$_EXTKEY] = array(
 	'title' => 'Table Library',
 	'description' => 'This containts a base class which you can use to make your extensions independant from any specific table. And it can be used to make multiple language support with a separate language overlay table.',
 	'category' => 'misc',
 	'shy' => 0,
-	'version' => '0.3.0',
+	'version' => '0.3.1',
 	'dependencies' => '',
 	'conflicts' => '',
 	'priority' => '',
@@ -36,7 +31,7 @@ $EM_CONF[$_EXTKEY] = array(
 		'depends' => array(
 			'php' => '5.2.0-5.4.99',
 			'typo3' => '4.5.0-6.2.99',
-			'div2007' => '1.0.0-',
+			'div2007' => '1.1.5-0.0.0',
 		),
 		'conflicts' => array(
 		),
