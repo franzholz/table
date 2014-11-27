@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 1999-2012 Kasper Skårhøj (kasperYYYY@typo3.com)
+*  (c) 1999-2014 Kasper Skårhøj (kasperYYYY@typo3.com)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -411,7 +411,6 @@ class tx_table_db {
 	 * @return	string		The WHERE clause.
 	 */
 	public function searchWhere ($sw, $searchFieldList, $bUseLanguage = TRUE, $charRegExp = '') {
-		global $TYPO3_DB;
 
 		$where = '';
 		if ($sw) {
@@ -428,8 +427,8 @@ class tx_table_db {
 				$where_p = array();
 				if (strlen($val) >= 2) {
 					$valueArray = array();
-					$valueArray[$tablename] = $TYPO3_DB->escapeStrForLike($TYPO3_DB->quoteStr($val, $tablename), $tablename);
-					$valueArray[$languageName] = $TYPO3_DB->escapeStrForLike($TYPO3_DB->quoteStr($val, $languageName), $languageName);
+					$valueArray[$tablename] = $GLOBALS['TYPO3_DB']->escapeStrForLike($GLOBALS['TYPO3_DB']->quoteStr($val, $tablename), $tablename);
+					$valueArray[$languageName] = $GLOBALS['TYPO3_DB']->escapeStrForLike($GLOBALS['TYPO3_DB']->quoteStr($val, $languageName), $languageName);
 					foreach ($searchFields as $field) {
 						$theTablename = $tablename;
 						if ($bUseLanguage) {
@@ -467,8 +466,6 @@ class tx_table_db {
 		$tableAlias = '',
 		$bSetTablename = TRUE
 	) {
-		global $TSFE;
-
 		if ($table != '') {
 			$dummy1 = $this->aliasArray; // PHP 5.2.1 needs this
 			$dummy2 = $this->defaultFieldArray; // PHP 5.2.1 needs this
@@ -577,8 +574,6 @@ class tx_table_db {
 		$ignore_array = array(),
 		$table = ''
 	) {
-		global $TYPO3_CONF_VARS;
-
 		if ($this->needsInit()) {
 			return FALSE;
 		}
@@ -588,17 +583,17 @@ class tx_table_db {
 		$aliasTable = (isset($this->aliasArray[$table]) ? $this->aliasArray[$table] : $table);
 
 		if ($show_hidden==-1 && is_object($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
-			$show_hidden = $table=='pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
+			$show_hidden = $table == 'pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
 		}
-		if ($show_hidden==-1) {
-			$show_hidden=0;	// If show_hidden was not changed during the previous evaluation, do it here.
+		if ($show_hidden == -1) {
+			$show_hidden = 0;	// If show_hidden was not changed during the previous evaluation, do it here.
 		}
 
 		$ctrl = $GLOBALS['TCA'][$table]['ctrl'];
-		$fieldArray=array();
+		$fieldArray = array();
 		if (is_array($ctrl)) {
 			if ($ctrl['delete']) {
-				$query.=' AND '.$aliasTable.'.'.$ctrl['delete'].'=0';
+				$query .= ' AND ' . $aliasTable . '.' . $ctrl['delete'] . '=0';
 				$fieldArray[] = 'delete';
 			}
 
@@ -660,8 +655,6 @@ class tx_table_db {
 		$ignore_array = array(),
 		$table = ''
 	) {
-		global $TYPO3_CONF_VARS;
-
 		if ($this->needsInit()) {
 			return FALSE;
 		}
@@ -697,7 +690,11 @@ class tx_table_db {
 					$field = $aliasTable . '.' . $ctrl['enablecolumns']['endtime'];
 					$query .= ' AND (' . $field . '=0 OR ' . $field . '>' . $GLOBALS['SIM_EXEC_TIME'] . ')';
 				}
-				if ($ctrl['enablecolumns']['fe_group'] && !$ignore_array['fe_group']) {
+				if (
+					is_object($GLOBALS['TSFE']) &&
+					$ctrl['enablecolumns']['fe_group'] &&
+					!$ignore_array['fe_group']
+				) {
 					$field = $aliasTable . '.' . $ctrl['enablecolumns']['fe_group'];
 					$gr_list = $GLOBALS['TSFE']->gr_list;
 					if (!strcmp($gr_list, '')) {
@@ -708,14 +705,14 @@ class tx_table_db {
 
 					// Call hook functions for additional enableColumns
 					// It is used by the extension ingmar_accessctrl which enables assigning more than one usergroup to content and page records
-				if (is_array($TYPO3_CONF_VARS['SC_OPTIONS']['t3lib/class.t3lib_page.php']['addEnableColumns'])) {
+				if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_page.php']['addEnableColumns'])) {
 					$_params = array(
 						'table' => $table,
 						'show_hidden' => $show_hidden,
 						'ignore_array' => $ignore_array,
 						'ctrl' => $ctrl
 					);
-					foreach($TYPO3_CONF_VARS['SC_OPTIONS']['t3lib/class.t3lib_page.php']['addEnableColumns'] as $_funcRef) {
+					foreach($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_page.php']['addEnableColumns'] as $_funcRef) {
 						$query .= t3lib_div::callUserFunction($_funcRef, $_params, $this);
 					}
 				}
@@ -868,12 +865,10 @@ class tx_table_db {
 		&$where,
 		$bUseJoin = FALSE
 	) {
-		global $TSFE;
-
 			// set the language
 		if ($this->getLanguage() && is_array($this->tableFieldArray) && is_array($this->tableFieldArray['sys_language_uid'])) {
 			$tableField = $this->tableFieldArray['sys_language_uid'];
-			$newWhere = ' AND ' . $this->aliasArray[key($tableField)] . '.' . current($this->tableFieldArray['sys_language_uid']) . '=' . $TSFE->config['config']['sys_language_uid'];
+			$newWhere = ' AND ' . $this->aliasArray[key($tableField)] . '.' . current($this->tableFieldArray['sys_language_uid']) . '=' . $GLOBALS['TSFE']->config['config']['sys_language_uid'];
 			$languageTable = $this->getLangName();
 
 			if ($languageTable != '') {
@@ -1181,7 +1176,6 @@ class tx_table_db {
 		$no_quote_fields = FALSE,
 		$bCheckCount = TRUE
 	) {
-		global $TYPO3_DB;
 		$rc = TRUE;
 
 		if ($this->needsInit()) {
@@ -1199,10 +1193,10 @@ class tx_table_db {
 			foreach ($this->newFieldArray as $k => $field) {
 				$fieldsArray[$field] = $fields_values[$count++];
 			}
-			$TYPO3_DB->exec_INSERTquery($tablename,$fieldsArray,$no_quote_fields);
+			$GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename,$fieldsArray,$no_quote_fields);
 		} else if (!$bCheckCount) {
 			$fieldsArray = array_merge($fieldsArray, $fields_values);
-			$TYPO3_DB->exec_INSERTquery($tablename,$fieldsArray,$no_quote_fields);
+			$GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename,$fieldsArray,$no_quote_fields);
 		} else {
 			$rc = FALSE;
 		}
@@ -1218,10 +1212,9 @@ class tx_table_db {
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
 	public function exec_DELETEquery ($where) {
-		global $TYPO3_DB;
 
 		$tablename = $this->getName();
-		$TYPO3_DB->exec_DELETEquery($tablename,$where);
+		$GLOBALS['TYPO3_DB']->exec_DELETEquery($tablename,$where);
 	}
 
 
@@ -1246,8 +1239,6 @@ class tx_table_db {
 		$from = '',
 		$aliasPostfix = ''
 	) {
-		global $TYPO3_DB;
-
 		$tables = '';
 
 		if ($this->needsInit()) {
@@ -1295,7 +1286,7 @@ class tx_table_db {
 		$groupBy = $this->transformOrderby($groupBy, $aliasPostfix);
 		$orderBy = $this->transformOrderby($orderBy, $aliasPostfix);
 
-		$res = $TYPO3_DB->exec_SELECTquery($select_fields, $tables, $where_clause, $groupBy, $orderBy, $limit);
+		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery($select_fields, $tables, $where_clause, $groupBy, $orderBy, $limit);
 		return $res;
 	}
 
@@ -1320,8 +1311,6 @@ class tx_table_db {
 		$orderBy = '',
 		$limit = ''
 	) {
-		global $TYPO3_DB;
-
 		if ($this->needsInit()) {
 			return FALSE;
 		}
@@ -1571,8 +1560,6 @@ class tx_table_db {
 		$conf,
 		$returnQueryArray = FALSE
 	) {
-		global $TSFE, $TYPO3_DB;
-
 		if ($this->needsInit()) {
 			return FALSE;
 		}
@@ -1596,23 +1583,25 @@ class tx_table_db {
 		);
 
 		if (trim($conf['uidInList'])) {
-			$listArr = t3lib_div::intExplode(',', str_replace('this', $TSFE->contentPid, $conf['uidInList']));
+			if (TYPO3_MODE == 'FE') {
+				$listArr = t3lib_div::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['uidInList']));
+			}
 			if (count($listArr) == 1) {
 				$query.=' AND '.$this->aliasArray[$table].'.uid='.intval($listArr[0]);
 			} else {
-				$query.=' AND '.$this->aliasArray[$table].'.uid IN ('.implode(',', $TYPO3_DB->cleanIntArray($listArr)).')';
+				$query.=' AND '.$this->aliasArray[$table].'.uid IN ('.implode(',', $GLOBALS['TYPO3_DB']->cleanIntArray($listArr)).')';
 			}
 			$pid_uid_flag++;
 		}
 
 		if (trim($conf['pidInList'])) {
-			$listArr = t3lib_div::intExplode(',',str_replace('this', $TSFE->contentPid, $conf['pidInList']));	// str_replace instead of ereg_replace 020800
-
-				// removes all pages which are not visible for the user!
-			$listArr = $cObj->checkPidArray($listArr);
+			if (TYPO3_MODE == 'FE') {
+				$listArr = t3lib_div::intExplode(',',str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['pidInList']));	// str_replace instead of ereg_replace 020800
+				$listArr = $cObj->checkPidArray($listArr);
+			}
 
 			if (count($listArr)) {
-				$query.=' AND ' . $this->aliasArray[$table] . '.pid IN (' . implode(',', $TYPO3_DB->cleanIntArray($listArr)) . ')';
+				$query.=' AND ' . $this->aliasArray[$table] . '.pid IN (' . implode(',', $GLOBALS['TYPO3_DB']->cleanIntArray($listArr)) . ')';
 				$pid_uid_flag++;
 			} else {
 				$pid_uid_flag = 0;		// If not uid and not pid then uid is set to 0 - which results in nothing!!
@@ -1627,9 +1616,12 @@ class tx_table_db {
 			$query.=' AND ' . $where;
 		}
 
-		if ($conf['languageField']) {
+		if (
+			(TYPO3_MODE == 'FE') &&
+			$conf['languageField']
+		) {
 			if (
-				$TSFE->sys_language_contentOL &&
+				$GLOBALS['TSFE']->sys_language_contentOL &&
 				$GLOBALS['TCA'][$table] &&
 				$GLOBALS['TCA'][$table]['ctrl']['languageField'] &&
 				$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']
@@ -1637,7 +1629,7 @@ class tx_table_db {
 					// Sys language content is set to zero/-1 - and it is expected that whatever routine processes the output will OVERLAY the records with localized versions!
 				$sys_language_content = '0,-1';
 			} else {
-				$sys_language_content = intval($TSFE->sys_language_content);
+				$sys_language_content = intval($GLOBALS['TSFE']->sys_language_content);
 			}
 			$query.=' AND ' . $conf['languageField'] . ' IN (' . $sys_language_content . ')';
 		}
@@ -1648,9 +1640,12 @@ class tx_table_db {
 		}
 
 			// enablefields
-		if ($table == 'pages') {
-			$query .= ' ' . $TSFE->sys_page->where_hid_del .
-						$TSFE->sys_page->where_groupAccess;
+		if (
+			TYPO3_MODE == 'FE' &&
+			$table == 'pages'
+		) {
+			$query .= ' ' . $GLOBALS['TSFE']->sys_page->where_hid_del .
+				$GLOBALS['TSFE']->sys_page->where_groupAccess;
 		} else {
 			$query .= $this->enableFields();
 		}

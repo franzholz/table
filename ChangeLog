@@ -1,3 +1,6 @@
+2014-11-27 Franz Holzinger <franz@ttproducts.de>
+	* use $GLOBALS['TYPO3_DB']
+	* make table library callable from the backend
 
 2014-08-12 Franz Holzinger <franz@ttproducts.de>
 	* introduce new db passthrough check
