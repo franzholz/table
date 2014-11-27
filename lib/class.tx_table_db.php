@@ -754,11 +754,11 @@ class tx_table_db {
 			$part = $bracketOpenOffset . $part;
 			$bracketOpenOffset = '';
 			if (isset($part)) {
-				if (($quotePos = strpos($part,'\'')) !== FALSE) {
+				if (($quotePos = strpos($part, '\'')) !== FALSE) {
 					$quoteCount = 1;
 					$len = strlen($part);
-					while ($quotePos !== FALSE && $quotePos < $len-1) {
-						$quotePos = strpos($part,'\'',$quotePos+1);
+					while ($quotePos !== FALSE && $quotePos < $len - 1) {
+						$quotePos = strpos($part, '\'', $quotePos + 1);
 						if ($quotePos !== FALSE) {
 							$quoteCount++;
 						}
@@ -789,8 +789,8 @@ class tx_table_db {
 								$i++;
 							}
 							if ($part3pre != '') {
-								$part3prePos = strpos($part3pre,'.');
-								if ($part3prePos !== FALSE)	{
+								$part3prePos = strpos($part3pre , '.');
+								if ($part3prePos !== FALSE) {
 									$part3preArray = explode('.',$part3pre);
 									if ($part3preArray['0'] == $this->getName() || $part3preArray['0'] == $this->getAlias()) {
 										$part3pre = $part3preArray['1'];
@@ -808,10 +808,13 @@ class tx_table_db {
 								$i++;
 							}
 							if ($part3post != '') {
-								$part3postPos = strpos($part3post,'.');
+								$part3postPos = strpos($part3post, '.');
 								if ($part3postPos !== FALSE) {
-									$part3postArray = explode('.',$part3post);
-									if ($part3postArray['0'] == $this->getName() || $part3postArray['0'] == $this->getAlias()) {
+									$part3postArray = explode('.', $part3post);
+									if (
+										$part3postArray['0'] == $this->getName() ||
+										$part3postArray['0'] == $this->getAlias()
+									) {
 										$part3post = $part3postArray['1'];
 									}
 								}
@@ -1070,8 +1073,8 @@ class tx_table_db {
 		} else {
 			foreach ($this->aliasArray as $table => $alias) {
 
-				if ($table != $this->getName() && !in_array($table,$excludeArray))
-					$rcArray[] = $table.' '.$alias;
+				if ($table != $this->getName() && !in_array($table, $excludeArray))
+					$rcArray[] = $table . ' ' . $alias;
 			}
 
 			if (count($rcArray) > 1) {
@@ -1193,10 +1196,10 @@ class tx_table_db {
 			foreach ($this->newFieldArray as $k => $field) {
 				$fieldsArray[$field] = $fields_values[$count++];
 			}
-			$GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename,$fieldsArray,$no_quote_fields);
+			$GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename, $fieldsArray, $no_quote_fields);
 		} else if (!$bCheckCount) {
 			$fieldsArray = array_merge($fieldsArray, $fields_values);
-			$GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename,$fieldsArray,$no_quote_fields);
+			$GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename, $fieldsArray, $no_quote_fields);
 		} else {
 			$rc = FALSE;
 		}
@@ -1214,7 +1217,7 @@ class tx_table_db {
 	public function exec_DELETEquery ($where) {
 
 		$tablename = $this->getName();
-		$GLOBALS['TYPO3_DB']->exec_DELETEquery($tablename,$where);
+		$GLOBALS['TYPO3_DB']->exec_DELETEquery($tablename, $where);
 	}
 
 
