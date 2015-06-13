@@ -1,3 +1,7 @@
+2015-06-13 Franz Holzinger <franz@ttproducts.de>
+	* ready for TYPO3 7.2
+	* remove the constants TABLE_EXTkey and PATH_BE_table because there is the autoload file ext_autoload.php
+
 2014-11-27 Franz Holzinger <franz@ttproducts.de>
 	* use $GLOBALS['TYPO3_DB']
 	* make table library callable from the backend
