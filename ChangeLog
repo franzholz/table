@@ -1,3 +1,6 @@
+2015-07-24 Franz Holzinger <franz@ttproducts.de>
+	* tested under TYPO3 7.4.0 alpha
+
 2015-06-13 Franz Holzinger <franz@ttproducts.de>
 	* ready for TYPO3 7.2
 	* remove the constants TABLE_EXTkey and PATH_BE_table because there is the autoload file ext_autoload.php
