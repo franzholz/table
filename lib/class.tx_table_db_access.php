@@ -29,8 +29,6 @@
  *
  * database base class for your table classes
  *
- * $Id$
- *
  * @author	Franz Holzinger <franz@ttproducts.de>
  * @package TYPO3
  * @subpackage table
@@ -77,13 +75,11 @@ class tx_table_db_access {
 	 * @return	void
 	 */
 	public function prepareWhereFields ($table, $field, $comparator, $value) {
-		global $TYPO3_DB;
-
 		$tmpArray = $table->tableFieldArray[$field];
 		if ($this->where_clause) {
 			$this->where_clause .= ' AND ';
 		}
-		$this->where_clause .= key($tmpArray) . '.' . current($tmpArray) . $comparator . $TYPO3_DB->fullQuoteStr($value, $table);
+		$this->where_clause .= key($tmpArray) . '.' . current($tmpArray) . $comparator . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 		$this->tableArray[$table->name] = $table;
 	}
 
@@ -112,8 +108,6 @@ class tx_table_db_access {
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
  	public function exec_SELECTquery ($where = '', $limit = '') {
- 		global $TYPO3_DB;
-
 		$select_fields = '';
 		$comma = '';
 		if (!is_array($this->queryFieldArray['select']) || !is_array($this->tableArray)) {
@@ -172,7 +166,7 @@ class tx_table_db_access {
 			}
 		}
 
-	 	$res = $TYPO3_DB->exec_SELECTquery($select_fields, $from_table, $where_clause,$groupBy,$orderBy,$limit);
+	 	$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery($select_fields, $from_table, $where_clause,$groupBy,$orderBy,$limit);
 	 	return $res;
 	 }
 }
@@ -182,5 +176,3 @@ if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/table/l
 	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/table/lib/class.tx_table_db_access.php']);
 }
 
-
-?>

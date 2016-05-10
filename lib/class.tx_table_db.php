@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 1999-2015 Kasper Skårhøj (kasperYYYY@typo3.com)
+*  (c) 1999-2016 Kasper Skårhøj (kasperYYYY@typo3.com)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -28,8 +28,6 @@
  * Part of the table (Table Library) extension.
  *
  * database base class for your table classes
- *
- * $Id$
  *
  * @author	Kasper Skaarhoj <kasperYYYY@typo3.com>
  * @author	Franz Holzinger <franz@ttproducts.de>
@@ -190,7 +188,7 @@ class tx_table_db {
 		) {
 			$line = file_get_contents($filename);
 			if ($line === FALSE) {
-				break;
+				return FALSE;
 			}
 			$tokenArray = preg_split('/[\n|\r|\f]+/', $line);
 
@@ -1611,7 +1609,10 @@ class tx_table_db {
 			// Construct WHERE clause:
 
 			// Handle recursive function for the pidInList
-		if (isset($conf['recursive'])) {
+		if (
+			isset($conf['recursive']) &&
+			strcmp($conf['pidInList'], '-1') != 0
+		) {
 			$conf['recursive'] = intval($conf['recursive']);
 			if ($conf['recursive'] > 0) {
 				$pidList = '';
@@ -1628,6 +1629,9 @@ class tx_table_db {
 		if (!strcmp($conf['pidInList'], '')) {
 			$conf['pidInList'] = 'this';
 		}
+// 		if (!strcmp($conf['pidInList'], '-1')) {
+// 			unset($conf['pidInList']);
+// 		}
 
 		$queryParts = $this->getWhere($cObj, $table, $conf, TRUE);
 		if ($queryParts === FALSE) {
@@ -1759,7 +1763,13 @@ class tx_table_db {
 			$pid_uid_flag++;
 		}
 
-		if (trim($conf['pidInList'])) {
+		if (
+			!strcmp($conf['pidInList'], '-1')
+		) {
+			$pid_uid_flag = -1; // allow to show the records from all pages
+		} else if (
+			trim($conf['pidInList'])
+		) {
 			if (TYPO3_MODE == 'FE') {
 				$listArr = t3lib_div::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['pidInList']));
 				$listArr = $cObj->checkPidArray($listArr);
@@ -1843,5 +1853,3 @@ if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['
 	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/table/lib/class.tx_table_db.php']);
 }
 
-
-?>

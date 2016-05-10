@@ -1,3 +1,6 @@
+2016-05-10 Franz Holzinger <franz@ttproducts.de>
+	* support for PHP 7
+
 2015-12-21 Franz Holzinger <franz@ttproducts.de>
 	* support for language fallback
 	* bug fix: do not separate entered string by characters if REGEXP is used for the searchWhere function
