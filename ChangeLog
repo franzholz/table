@@ -1,5 +1,10 @@
+2016-10-10 Franz Holzinger <franz@ttproducts.de>
+	* new feature: add COLLATE in SQL functions if the new parameter $collateConf has been set
+	* pass the fallback parameter to SQL functions
+
 2016-05-10 Franz Holzinger <franz@ttproducts.de>
 	* support for PHP 7
+	* new feature: pidInList = -1 to show the records of all pages - pid_list
 
 2015-12-21 Franz Holzinger <franz@ttproducts.de>
 	* support for language fallback

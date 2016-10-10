@@ -1007,11 +1007,14 @@ class tx_table_db {
 	 * Returns a simple SQL select clause for this table with the correct table alias names
 	 *
 	 * @param	string		List of fields to select from the table. This is what comes right after "SELECT ...". Required value.
+	 * @param	string		postfix for the alias
+	 * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
 	 * @return	string		Select clause
 	 */
 	public function transformSelect (
 		$clause,
-		$aliasPostfix = ''
+		$aliasPostfix = '',
+		$collateConf = array()
 	) {
 		if ($this->needsInit()) {
 			return FALSE;
@@ -1066,11 +1069,21 @@ class tx_table_db {
 							$bAddAlias = FALSE;
 						}
 					}
+					$collatePart = '';
+					if (
+						isset($collateConf) &&
+						is_array($collateConf) &&
+						is_array($collateConf[$table]) &&
+						isset($collateConf[$table][$realField])
+					) {
+						$collatePart = ' COLLATE ' . $collateConf[$table][$realField];
+					}
+
 					if ($bAddAlias) {
-						$line = $this->aliasArray[$table] . $aliasPostfix . '.' . $field . ' ' . $this->columnPrefix . $realField;
+						$line = $this->aliasArray[$table] . $aliasPostfix . '.' . $field . $collatePart . ' ' . $this->columnPrefix . $realField;
 						$resultArray[] = $line;
 					} else {
-						$resultArray[] = $realField;
+						$resultArray[] = $realField . $collatePart;
 					}
 				}
 				$result = implode (',', $resultArray);
@@ -1338,6 +1351,9 @@ class tx_table_db {
 	 * @param	string		Optional ORDER BY field(s), if none, supply blank string.
 	 * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
 	 * @param	string		Optional FROM parts to be able to put a JOIN inside
+	 * @param	string		postfix for the alias
+	 * @param	boolean		FALLBACK
+	 * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
 	public function exec_SELECTquery (
@@ -1348,7 +1364,8 @@ class tx_table_db {
 		$limit = '',
 		$from = '',
 		$aliasPostfix = '',
-		$fallback = FALSE
+		$fallback = FALSE,
+		$collateConf = array()
 	) {
 		$tables = '';
 
@@ -1427,7 +1444,7 @@ class tx_table_db {
 		}
 
 		if (!$fallback) {
-			$select_fields = $this->transformSelect($select_fields, $aliasPostfix);
+			$select_fields = $this->transformSelect($select_fields, $aliasPostfix, $collateConf);
 		}
 		$where_clause =
 			$join .
@@ -1466,6 +1483,9 @@ class tx_table_db {
 	 * @param	string		Optional GROUP BY field(s), if none, supply blank string.
 	 * @param	string		Optional ORDER BY field(s), if none, supply blank string.
 	 * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
+	 * @param	string		postfix for the alias
+	 * @param	boolean		FALLBACK
+	 * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
 	 * @return	mixed		The SELECT query in an array as parts.
 	 * @access public
 	 */
@@ -1474,15 +1494,30 @@ class tx_table_db {
 		$where_clause,
 		$groupBy = '',
 		$orderBy = '',
-		$limit = ''
+		$limit = '',
+		$aliasPostfix = '',
+		$fallback = FALSE,
+		$collateConf = array()
 	) {
 		if ($this->needsInit()) {
 			return FALSE;
 		}
 
 		$join = '';
-		$tables = $this->transformTable($tables, FALSE, $join);
-		$select_fields = $this->transformSelect($select_fields);
+		$tables =
+			$this->transformTable(
+				$tables,
+				FALSE,
+				$join,
+				$aliasPostfix,
+				$fallback
+			);
+		$select_fields =
+			$this->transformSelect(
+				$select_fields,
+				$aliasPostfix,
+				$collateConf
+			);
 		$where_clause = $join . $this->transformWhere($where_clause);
 		$groupBy = $this->transformOrderby($groupBy);
 		$orderBy = $this->transformOrderby($orderBy);
@@ -1502,13 +1537,17 @@ class tx_table_db {
 	/**
 	 * Returns a select query array on input query parts array
 	 *
-	 * Usage: 9
-	 *
 	 * @param	array		Query parts array
+	 * @param	string		postfix for the alias
+	 * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
 	 * @return	pointer		MySQL select result pointer / DBAL object
 	 * @see getQuery()
 	 */
-	public function getQueryArray ($queryParts) {
+	public function getQueryArray (
+		$queryParts,
+		$aliasPostfix = '',
+		$collateConf = array()
+	) {
 		if ($this->needsInit()) {
 			return FALSE;
 		}
@@ -1519,7 +1558,9 @@ class tx_table_db {
 				$queryParts['WHERE'],
 				$queryParts['GROUPBY'],
 				$queryParts['ORDERBY'],
-				$queryParts['LIMIT']
+				$queryParts['LIMIT'],
+				$aliasPostfix,
+				$collateConf
 			);
 		return $queryParts;
 	}
@@ -1531,10 +1572,18 @@ class tx_table_db {
 	 * Usage: 9
 	 *
 	 * @param	array		Query parts array
+	 * @param	string		postfix for the alias
+	 * @param	boolean		FALLBACK
+	 * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
 	 * @return	pointer		MySQL select result pointer / DBAL object
 	 * @see exec_SELECTquery()
 	 */
-	public function exec_SELECT_queryArray ($queryParts) {
+	public function exec_SELECT_queryArray (
+		$queryParts,
+		$aliasPostfix = '',
+		$fallback = FALSE,
+		$collateConf = array()
+	) {
 		if ($queryParts['FROM'] == '') {
 			$queryParts['FROM'] = $this->getName();
 		}
@@ -1544,7 +1593,10 @@ class tx_table_db {
 				$queryParts['GROUPBY'],
 				$queryParts['ORDERBY'],
 				$queryParts['LIMIT'],
-				$queryParts['FROM']
+				$queryParts['FROM'],
+				$aliasPostfix,
+				$fallback,
+				$collateConf
 		);
 		return $res;
 	}
@@ -1646,7 +1698,13 @@ class tx_table_db {
 
 			// Finding the total number of records, if used:
 			if (strstr(strtolower($conf['begin'] . $conf['max']), 'total')) {
-				$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('count(*)', $table, $queryParts['WHERE'], $queryParts['GROUPBY']);
+				$res =
+					$GLOBALS['TYPO3_DB']->exec_SELECTquery(
+						'count(*)',
+						$table,
+						$queryParts['WHERE'],
+						$queryParts['GROUPBY']
+					);
 				if ($error = $GLOBALS['TYPO3_DB']->sql_error()) {
 					$GLOBALS['TT']->setTSlogMessage($error);
 				} else {
@@ -1656,6 +1714,7 @@ class tx_table_db {
 				}
 				$GLOBALS['TYPO3_DB']->sql_free_result($res);
 			}
+
 			if (!$error) {
 				$begin = ceil($cObj->calc($conf['begin']));
 				$conf['begin'] = tx_div2007_core::intInRange($begin, 0);
