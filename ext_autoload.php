@@ -18,7 +18,6 @@ $extensionPath = call_user_func($emClass . '::extPath', $key, $script);
 return array(
 	'tx_table_db' => $extensionPath . 'lib/class.tx_table_db.php',
 	'tx_table_db_access' => $extensionPath . 'lib/class.tx_table_db_access.php',
-	'tx_table_db_base' => $extensionPath . 'lib/class.tx_table_db_base.php',
-	'tx_table_div' => $extensionPath . 'lib/class.tx_table_div.php',
+	'tx_table_db_base' => $extensionPath . 'lib/class.tx_table_db_base.php'
 );
 
