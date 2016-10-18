@@ -1,3 +1,6 @@
+2016-10-18 Franz Holzinger <franz@ttproducts.de>
+	* new feature: add an optional replace configuration for the method searchWhere in order to have alternatives for character sequences
+
 2016-10-10 Franz Holzinger <franz@ttproducts.de>
 	* new feature: add COLLATE in SQL functions if the new parameter $collateConf has been set
 	* pass the fallback parameter to SQL functions

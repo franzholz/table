@@ -424,11 +424,26 @@ class tx_table_db {
 	 * @param	string		The search words. These will be separated by space and comma.
 	 * @param	string		The fields to search in
 	 * @param	boolean		If the language table shall be used for the fields which need a translation
-	 * @param	string		character intermediate regular expression. This will be inserted between all characters of the search words
+	 * @param	string		character intermediate regular expression. This will be inserted between all characters of the search words. "{s1}" is a placeholder for the search word.
+	 * @param	array		key => value pairs for characters which should be alternatives
 	 * @return	string		The WHERE clause.
 	 */
-	public function searchWhere ($sw, $searchFieldList, $bUseLanguage = TRUE, $charRegExp = '') {
+	public function searchWhere (
+		$sw,
+		$searchFieldList,
+		$bUseLanguage = TRUE,
+		$charRegExp = '',
+		$replaceConf = array()
+	) {
 		$where = '';
+		$replaceArray = array();
+
+		if (!empty($replaceConf)) {
+			foreach ($replaceConf as $search => $replace) {
+				$replaceArray[$search][] = $replace;
+				$replaceArray[$replace][] = $search;
+			}
+		}
 
 		if ($sw) {
 			$tablename = $this->getName();
@@ -444,8 +459,26 @@ class tx_table_db {
 				$where_p = array();
 				if (strlen($val) >= 2) {
 					$valueArray = array();
-					$valueArray[$tablename] = $GLOBALS['TYPO3_DB']->escapeStrForLike($GLOBALS['TYPO3_DB']->quoteStr($val, $tablename), $tablename);
-					$valueArray[$languageName] = $GLOBALS['TYPO3_DB']->escapeStrForLike($GLOBALS['TYPO3_DB']->quoteStr($val, $languageName), $languageName);
+					$valueArray[$tablename] =
+						$GLOBALS['TYPO3_DB']->escapeStrForLike(
+							$GLOBALS['TYPO3_DB']->quoteStr(
+								$val,
+								$tablename
+							),
+						$tablename
+					);
+
+					if ($bUseLanguage) {
+						$valueArray[$languageName] =
+							$GLOBALS['TYPO3_DB']->escapeStrForLike(
+								$GLOBALS['TYPO3_DB']->quoteStr(
+									$val,
+									$languageName
+								),
+							$languageName
+						);
+					}
+
 					foreach ($searchFields as $field) {
 						$theTablename = $tablename;
 						if ($bUseLanguage) {
@@ -457,7 +490,27 @@ class tx_table_db {
 							if ($charRegExp != '') {
 								$comparatorArray = array();
 								$value2 = $valueArray[$theTablename];
-								$part2 = 'REGEXP \'' . $value2 . $charRegExp . '\'';
+
+								if (!empty($replaceArray)) {
+									foreach ($replaceArray as $search => $searchArray) {
+										if (empty($searchArray)) {
+											continue;
+										}
+										$variantArray = array();
+										$variantArray[] = $search;
+										$variantArray = array_merge($variantArray, $searchArray);
+										$value2 =
+											str_replace($search, '(' . implode('|', $variantArray) . ')', $value2);
+									}
+								}
+
+								if (strpos($charRegExp, '"{s1}"') !== FALSE) {
+									$tmpCharRegExp = str_replace('"{s1}"', $value2, $charRegExp);
+								} else {
+									$tmpCharRegExp = $value2 . $charRegExp;
+								}
+
+								$part2 = 'REGEXP \'' . $tmpCharRegExp . '\'';
 							} else {
 								$part2 = 'LIKE \'%' . $valueArray[$theTablename] . '%\'';
 							}
