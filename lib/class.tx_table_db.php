@@ -275,10 +275,23 @@ class tx_table_db {
 		return $this->requiredFieldArray;
 	}
 
-
+// neu Anfang
 	public function setRequiredFieldArray ($fieldArray = array()) {
-		$this->requiredFieldArray = $fieldArray;
+		$requiredFieldArray = array();
+		$defaultFieldArray = $this->getDefaultFieldArray();
+		$noTcaFieldArray = $this->getNoTcaFieldArray();
+		foreach ($fieldArray as $field) {
+			if (
+				$this->bFieldExists($field) ||
+				isset($defaultFieldArray[$field]) ||
+				isset($noTcaFieldArray[$field])
+			) {
+				$requiredFieldArray[] = $field;
+			}
+		}
+		$this->requiredFieldArray = $requiredFieldArray;
 	}
+// neu Ende
 
 
 	public function addRequiredFieldArray ($fieldArray = array()) {

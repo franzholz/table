@@ -1,3 +1,6 @@
+2016-12-01 Franz Holzinger <franz@ttproducts.de>
+	* bug fix: setRequiredFieldArray shall filter out all fields which are not coming from TYPO3 or are in the TCA
+
 2016-10-18 Franz Holzinger <franz@ttproducts.de>
 	* new feature: add an optional replace configuration for the method searchWhere in order to have alternatives for character sequences
 
