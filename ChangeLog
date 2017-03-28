@@ -1,3 +1,7 @@
+2017-03-28 Franz Holzinger <franz@ttproducts.de>
+    * ready for TYPO3 8.x
+    * add composer.json
+
 2016-12-01 Franz Holzinger <franz@ttproducts.de>
 	* bug fix: setRequiredFieldArray shall filter out all fields which are not coming from TYPO3 or are in the TCA
 
