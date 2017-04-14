@@ -1,3 +1,6 @@
+2017-04-14 Franz Holzinger <franz@ttproducts.de>
+    * bugfix: error in composer.json
+
 2017-03-28 Franz Holzinger <franz@ttproducts.de>
     * ready for TYPO3 8.x
     * add composer.json
