@@ -1509,7 +1509,7 @@ class tx_table_db {
 			}
 		}
 
-		if (!$fallback) {
+		if ($fallback) {
 			$select_fields = $this->transformSelect($select_fields, $aliasPostfix, $collateConf);
 		}
 		$where_clause =
