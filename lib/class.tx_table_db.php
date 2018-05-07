@@ -43,6 +43,9 @@
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use TYPO3\CMS\Core\Utility\DebugUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
+
 
 class tx_table_db {
     public $tableFieldArray = array(); // array of fields for each table
@@ -583,8 +586,8 @@ class tx_table_db {
 
             $this->bNeedsInit = false;
         } else {
-            $tmp = tx_div2007_core::debugTrail();
-            tx_div2007_core::debug($tmp);
+            $tmp = DebugUtility::debugTrail();
+            DebugUtility::debug($tmp);
             die ('The function setTCAFieldArray() is called with an empty table name as argument.');
         }
     }
@@ -658,8 +661,8 @@ class tx_table_db {
                 }
             }
         } else {
-            $tmp = tx_div2007_core::debugTrail();
-            tx_div2007_core::debug($tmp);
+            $tmp = DebugUtility::debugTrail();
+            DebugUtility::debug($tmp);
             die ('NO entry in the $GLOBALS[\'TCA\']-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
         }
         $fieldArray = array_unique($fieldArray);
@@ -746,8 +749,8 @@ class tx_table_db {
                 }
             }
         } else {
-            $tmp = tx_div2007_core::debugTrail();
-            tx_div2007_core::debug($tmp);
+            $tmp = DebugUtility::debugTrail();
+            DebugUtility::debug($tmp);
             die ('NO entry in the $GLOBALS[\'TCA\']-array for the table "' . $table . '". This means that the function enableFields() is called with an invalid table name as argument.');
         }
         $this->enableFields = $query;
@@ -1725,9 +1728,9 @@ class tx_table_db {
 
             if (!$error) {
                 $begin = ceil($cObj->calc($conf['begin']));
-                $conf['begin'] = tx_div2007_core::intInRange($begin, 0);
+                $conf['begin'] = MathUtility::forceIntegerInRange($begin, 0);
                 $max = ceil($cObj->calc($conf['max']));
-                $conf['max'] = tx_div2007_core::intInRange($max, 0);
+                $conf['max'] = MathUtility::forceIntegerInRange($max, 0);
 
                 if ($conf['begin'] && !$conf['max']) {
                     $conf['max'] = 100000;
