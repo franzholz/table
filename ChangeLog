@@ -2,6 +2,7 @@
 
 2018-05-07 Franz Holzinger <franz@ttproducts.de>
     * migration: replace all t3lib_div calls by TYPO3\CMS\Core\Utility\GeneralUtility. TYPO3 6.1 is a minimum requirement now.
+    * Remove the file ext_autoload.php because the composer.json should do the job now.
 
 2017-04-14 Franz Holzinger <franz@ttproducts.de>
     * bugfix: error in composer.json
