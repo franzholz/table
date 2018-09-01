@@ -1,4 +1,5 @@
-
+2017-09--- Franz Holzinger <franz@ttproducts.de>
+    * ready for TYPO3 9.3.x
 
 2018-05-07 Franz Holzinger <franz@ttproducts.de>
     * migration: replace all t3lib_div calls by TYPO3\CMS\Core\Utility\GeneralUtility. TYPO3 6.1 is a minimum requirement now.
