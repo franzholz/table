@@ -66,7 +66,7 @@ class tx_table_db {
                 'sorting' => 'sorting',
             ); // fields which do not have an entry in TCA
     public $newFieldArray = array(); 	// containts the field names which are no default fields (needed for insert)
-    public $aliasArray; // alias names for tables
+    public $aliasArray = array(); // alias names for tables
     public $langArray = array(); // array of language values
     public $markerArray = array(); // array of marker values
     public $name; // name of the table
@@ -74,7 +74,7 @@ class tx_table_db {
     public $enableFields;
     public $foreignUidArray = array();	// foreign keys to uid of table
     public $LLkey; 	// language key to use
-    public $requiredFieldArray; // fields which must be read in even if no markers are found - needed in extensions
+    public $requiredFieldArray = array(); // fields which must be read in even if no markers are found - needed in extensions
     public $columnPrefix; // prefix put before the column names
     public $config = array(); // configuration array
     public $bNeedsInit = true;
@@ -276,6 +276,10 @@ class tx_table_db {
 
     public function addRequiredFieldArray ($fieldArray = array()) {
         $this->requiredFieldArray = array_merge($this->requiredFieldArray, $fieldArray);
+    }
+
+    public function getTableFieldArray () {
+        return $this->tableFieldArray;
     }
 
     public function getDefaultFieldArray () {
