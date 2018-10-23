@@ -1811,6 +1811,7 @@ class tx_table_db {
         if (!$table) {
             return false;
         }
+        $listArr = array();
 
             // Init:
         $query = '';

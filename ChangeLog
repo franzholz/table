@@ -1,6 +1,11 @@
     * ready for TYPO3 9.3.x: ???
 
-2017-09-20 Franz Holzinger <franz@ttproducts.de>
+    
+
+2018-10-23 Franz Holzinger <franz@ttproducts.de>
+    * initialize $listArr.
+
+2018-09-20 Franz Holzinger <franz@ttproducts.de>
     * initialize internal array variables as arrays
 
 2018-05-07 Franz Holzinger <franz@ttproducts.de>
