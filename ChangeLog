@@ -1,6 +1,6 @@
-    * ready for TYPO3 9.3.x: ???
 
-    
+2019-07-16 Franz Holzinger <franz@ttproducts.de>
+    * ready for TYPO3 9.5.x
 
 2018-10-23 Franz Holzinger <franz@ttproducts.de>
     * initialize $listArr.
