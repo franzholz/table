@@ -1,3 +1,6 @@
+2019-11-04 Franz Holzinger <franz@ttproducts.de>
+    * replace the PHP method strstr by the faster method strpos
+    * modify composer.json
 
 2019-07-16 Franz Holzinger <franz@ttproducts.de>
     * ready for TYPO3 9.5.x

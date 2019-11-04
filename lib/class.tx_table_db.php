@@ -202,7 +202,8 @@ class tx_table_db {
 
             foreach ($row as $field => $value) {
                 if (
-                    !is_array($value) && strstr($value, '###') !== false &&
+                    !is_array($value) &&
+                    (strpos($value, '###') !== false) &&
                     (
                         $excludeFieldArray == '' ||
                         is_array($excludeFieldArray) && !in_array($field, $excludeFieldArray)
@@ -1243,7 +1244,7 @@ class tx_table_db {
 
         $theName = $this->getName();
         $bTableFound = false;
-        if (!$bJoinFound && strstr($tables, $theName)) {
+        if (!$bJoinFound && (strpos($tables, $theName) != false)) {
             $bTableFound = true;
         }
 
@@ -1711,7 +1712,7 @@ class tx_table_db {
             $error = 0;
 
             // Finding the total number of records, if used:
-            if (strstr(strtolower($conf['begin'] . $conf['max']), 'total')) {
+            if (strpos(strtolower($conf['begin'] . $conf['max']), 'total') != false) {
                 $res =
                     $GLOBALS['TYPO3_DB']->exec_SELECTquery(
                         'count(*)',
