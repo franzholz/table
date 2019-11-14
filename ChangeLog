@@ -1,3 +1,6 @@
+2019-11-14 Franz Holzinger <franz@ttproducts.de>
+    * commpatibility with TYPO3 9.4 deprecation no. 85543: Consider the sys_language_uid coming from TYPO3\CMS\Core\Context\Context method getAspect.
+
 2019-11-04 Franz Holzinger <franz@ttproducts.de>
     * replace the PHP method strstr by the faster method strpos
     * modify composer.json

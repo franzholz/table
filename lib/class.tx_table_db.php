@@ -1003,7 +1003,11 @@ class tx_table_db {
             is_array($this->tableFieldArray['sys_language_uid'])
         ) {
             $tableField = $this->tableFieldArray['sys_language_uid'];
-            $newWhere = ' AND ' . $this->aliasArray[key($tableField)] . '.' . current($this->tableFieldArray['sys_language_uid']) . '=' . $GLOBALS['TSFE']->config['config']['sys_language_uid'];
+            $api =
+                GeneralUtility::makeInstance(\JambageCom\Div2007\Api\Frontend::class);
+            $sys_language_uid = $api->getLanguageId();
+
+            $newWhere = ' AND ' . $this->aliasArray[key($tableField)] . '.' . current($this->tableFieldArray['sys_language_uid']) . '=' . intval($sys_language_uid);
             $languageTable = $this->getLangName();
 
             if ($languageTable != '') {
