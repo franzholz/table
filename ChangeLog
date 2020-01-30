@@ -1,3 +1,6 @@
+2020-01-30 Franz Holzinger <franz@ttproducts.de>
+    * readd autoloader file ext_autoload.php
+
 2019-11-14 Franz Holzinger <franz@ttproducts.de>
     * commpatibility with TYPO3 9.4 deprecation no. 85543: Consider the sys_language_uid coming from TYPO3\CMS\Core\Context\Context method getAspect.
 
