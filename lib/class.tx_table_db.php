@@ -1904,8 +1904,10 @@ class tx_table_db {
         ) {
             if (TYPO3_MODE == 'FE') {
                 $listArr = GeneralUtility::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['pidInList']));
-                $listArr = $cObj->checkPidArray($listArr);
+            } else {
+                $listArr = GeneralUtility::intExplode(',', $conf['pidInList']);
             }
+            $listArr = $cObj->checkPidArray($listArr);
 
             if (count($listArr)) {
                 $query.=' AND ' . $this->aliasArray[$table] . '.pid IN (' . implode(',', $GLOBALS['TYPO3_DB']->cleanIntArray($listArr)) . ')';
