@@ -84,7 +84,8 @@ class tx_table_db {
         $table,
         $tableAlias = '',
         $tableFieldArray = array()
-    ) {
+    )
+    {
         $this->aliasArray [$table] = ($tableAlias ? $tableAlias : $table);
         if (count($tableFieldArray)) {
             $this->tableFieldArray = $tableFieldArray;
@@ -93,27 +94,33 @@ class tx_table_db {
         $this->bNeedsInit = false;
     }
 
-    public function needsInit () {
+    public function needsInit ()
+    {
         return $this->bNeedsInit;
     }
 
-    public function getName () {
+    public function getName ()
+    {
         return $this->name;
     }
 
-    public function setName ($name) {
+    public function setName ($name)
+    {
         $this->name = $name;
     }
 
-    public function getLangName () {
+    public function getLangName ()
+    {
         return $this->langname;
     }
 
-    public function setLangName ($name) {
+    public function setLangName ($name)
+    {
         $this->langname = $name;
     }
 
-    public function getAlias () {
+    public function getAlias ()
+    {
         $result = '';
         $name = $this->getName();
         if (isset($this->aliasArray[$name])) {
@@ -122,33 +129,40 @@ class tx_table_db {
         return $result;
     }
 
-    public function getLangAlias () {
+    public function getLangAlias ()
+    {
         $name = $this->getLangName();
         return $this->aliasArray[$name];
     }
 
-    public function setConfig (&$config) {
+    public function setConfig (&$config)
+    {
         $this->config = &$config;
     }
 
-    public function &getConfig () {
+    public function &getConfig ()
+    {
         return $this->config;
     }
 
     /* deprecated */
-    public function getAliasName () {
+    public function getAliasName ()
+    {
         return $this->getAlias();
     }
 
-    public function getLanguage () {
+    public function getLanguage ()
+    {
         return $this->LLkey;
     }
 
-    public function setLanguage ($LLkey) {
+    public function setLanguage ($LLkey)
+    {
         $this->LLkey = $LLkey;
     }
 
-    public function getField ($field) {
+    public function getField ($field)
+    {
         $result = $field;
         $fieldArray = $this->tableFieldArray[$field];
         if (isset($fieldArray) && is_array($fieldArray)) {
@@ -157,7 +171,8 @@ class tx_table_db {
         return $result;
     }
 
-    public function getTableFromField ($field) {
+    public function getTableFromField ($field)
+    {
         $result = false;
         $fieldArray = $this->tableFieldArray[$field];
         if (isset($fieldArray) && is_array($fieldArray)) {
@@ -170,7 +185,8 @@ class tx_table_db {
         $filename,
         &$retLangArray,
         $keyWrapArray = array()
-    ) {
+    )
+    {
         if (
             @is_file($filename) &&
             GeneralUtility::validPathStr($filename)
@@ -190,14 +206,16 @@ class tx_table_db {
         }
     }
 
-    public function getMarkerArray () {
+    public function getMarkerArray ()
+    {
         return $this->markerArray;
     }
 
     public function substituteMarkerArray (
         &$row,
         $excludeFieldArray = array()
-    ) {
+    )
+    {
         if (is_array($row)) {
 
             foreach ($row as $field => $value) {
@@ -234,31 +252,37 @@ class tx_table_db {
         }
     }
 
-    public function initLanguageFile ($filename) {
+    public function initLanguageFile ($filename)
+    {
         $this->initFile($filename, $this->langArray);
     }
 
-    public function initMarkerFile ($filename) {
+    public function initMarkerFile ($filename)
+    {
         $this->initFile($filename, $this->markerArray, array('###', '###'));
     }
 
-    public function setColumnPrefix ($prefix) {
+    public function setColumnPrefix ($prefix)
+    {
         $this->columnPrefix = $prefix;
     }
 
     // use setTCAFieldArray instead of this
-    public function setTableFieldArray ($table, $tableAlias = '', $fieldArray) {
+    public function setTableFieldArray ($table, $tableAlias = '', $fieldArray)
+    {
         $this->aliasArray[$table] = ($tableAlias ? $tableAlias : $table);
         foreach ($fieldArray as $fieldbase => $field) {
             $this->tableFieldArray[$fieldbase] = array ($table => $field);
         }
     }
 
-    public function getRequiredFieldArray () {
+    public function getRequiredFieldArray ()
+    {
         return $this->requiredFieldArray;
     }
 
-    public function setRequiredFieldArray ($fieldArray = array()) {
+    public function setRequiredFieldArray ($fieldArray = array())
+    {
         $requiredFieldArray = array();
         $defaultFieldArray = $this->getDefaultFieldArray();
         $noTcaFieldArray = $this->getNoTcaFieldArray();
@@ -274,23 +298,28 @@ class tx_table_db {
         $this->requiredFieldArray = $requiredFieldArray;
     }
 
-    public function addRequiredFieldArray ($fieldArray = array()) {
+    public function addRequiredFieldArray ($fieldArray = array())
+    {
         $this->requiredFieldArray = array_merge($this->requiredFieldArray, $fieldArray);
     }
 
-    public function getTableFieldArray () {
+    public function getTableFieldArray ()
+    {
         return $this->tableFieldArray;
     }
 
-    public function getDefaultFieldArray () {
+    public function getDefaultFieldArray ()
+    {
         return $this->defaultFieldArray;
     }
 
-    public function getNoTcaFieldArray () {
+    public function getNoTcaFieldArray ()
+    {
         return $this->noTCAFieldArray;
     }
 
-    public function setDefaultFieldArray ($defaultFieldArray = array()) {
+    public function setDefaultFieldArray ($defaultFieldArray = array())
+    {
         if (isset($this->defaultFieldArray) && is_array($this->defaultFieldArray)) {
             foreach ($this->defaultFieldArray as $field => $realField) {
                 if (isset($this->tableFieldArray[$field])) {
@@ -301,11 +330,13 @@ class tx_table_db {
         $this->defaultFieldArray = $defaultFieldArray;
     }
 
-    public function addDefaultFieldArray ($defaultFieldArray = array()) {
+    public function addDefaultFieldArray ($defaultFieldArray = array())
+    {
         $this->defaultFieldArray = array_merge($this->defaultFieldArray, $defaultFieldArray);
     }
 
-    public function setNewFieldArray () {
+    public function setNewFieldArray ()
+    {
         $this->newFieldArray = array();
 
         if (isset($this->tableFieldArray) && is_array($this->tableFieldArray)) {
@@ -320,7 +351,8 @@ class tx_table_db {
     public function getTCA (
         $part,
         $field = ''
-    ) {
+    )
+    {
         $result = false;
 
         $table = $this->getName();
@@ -341,7 +373,8 @@ class tx_table_db {
     public function getLangTCA (
         $part,
         $field = ''
-    ) {
+    )
+    {
         $table = $this->langname;
 
         if (
@@ -357,7 +390,8 @@ class tx_table_db {
         return $result;
     }
 
-    public function bFieldExists ($field) {
+    public function bFieldExists ($field)
+    {
         $field = $this->getField($field);
         $fieldTca = $this->getTCA('columns', $field);
         return (isset($fieldTca));
@@ -367,7 +401,8 @@ class tx_table_db {
     public function setNoTCAFieldArray (
         $table,
         $fieldArray
-    ) {
+    )
+    {
         foreach ($fieldArray as $key => $field) {
             if (
                 !isset($this->tableFieldArray[$field])
@@ -377,7 +412,8 @@ class tx_table_db {
         }
     }
 
-    public function getForeignUidArray ($table = '') {
+    public function getForeignUidArray ($table = '')
+    {
         $result = false;
 
         if ($table) {
@@ -391,7 +427,8 @@ class tx_table_db {
     public function setForeignUidArray (
         $table,
         $field
-    ) {
+    )
+    {
         $this->foreignUidArray[$table] = $field;
     }
 
@@ -412,7 +449,8 @@ class tx_table_db {
         $bUseLanguage = true,
         $charRegExp = '',
         $replaceConf = array()
-    ) {
+    )
+    {
         $where = '';
         $replaceArray = array();
 
@@ -509,7 +547,8 @@ class tx_table_db {
         $table,
         $tableAlias = '',
         $bSetTablename = true
-    ) {
+    )
+    {
         if ($table != '') {
             if (
                 $bSetTablename &&
@@ -609,7 +648,8 @@ class tx_table_db {
         $show_hidden = -1,
         $ignore_array = array(),
         $table = ''
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -689,7 +729,8 @@ class tx_table_db {
         $show_hidden = -1,
         $ignore_array = array(),
         $table = ''
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -773,7 +814,8 @@ class tx_table_db {
         $aliasPostfix = '',
         &$joinFallback = '',
         $joinTableArray = array()
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -995,7 +1037,8 @@ class tx_table_db {
         &$table,
         &$where,
         $bUseJoin = false
-    ) {
+    )
+    {
             // set the language
         if (
             $this->getLanguage() &&
@@ -1040,7 +1083,8 @@ class tx_table_db {
         $clause,
         $aliasPostfix = '',
         $collateConf = array()
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -1129,7 +1173,8 @@ class tx_table_db {
     public function transformOrderby (
         $clause,
         $aliasPostfix = ''
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -1202,8 +1247,8 @@ class tx_table_db {
     * @param 	string		exclude table
     * @return	string		table names with aliases separated by comma
     */
-    public function getAdditionalTables ($excludeArray = array()) {
-
+    public function getAdditionalTables ($excludeArray = array())
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -1241,7 +1286,8 @@ class tx_table_db {
         &$join,
         $aliasPostfix = '',
         $fallback = false
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -1289,7 +1335,8 @@ class tx_table_db {
     public function transformRow (
         &$row,
         $extKey
-    ) {
+    )
+    {
         $tablename = $this->getName();
 
             // Call all changeBasket hooks
@@ -1319,7 +1366,8 @@ class tx_table_db {
         $fields_values,
         $no_quote_fields = false,
         $bCheckCount = true
-    ) {
+    )
+    {
         $result = true;
 
         if ($this->needsInit()) {
@@ -1353,8 +1401,8 @@ class tx_table_db {
     * @param	string		WHERE clause, eg. "uid=1". NOTICE: You must escape values in this argument with $this->fullQuoteStr() yourself!
     * @return	pointer		MySQL result pointer / DBAL object
     */
-    public function exec_DELETEquery ($where) {
-
+    public function exec_DELETEquery ($where)
+    {
         $tablename = $this->getName();
         $GLOBALS['TYPO3_DB']->exec_DELETEquery($tablename, $where);
     }
@@ -1384,7 +1432,8 @@ class tx_table_db {
         $aliasPostfix = '',
         $fallback = false,
         $collateConf = array()
-    ) {
+    )
+    {
         $tables = '';
 
         if ($this->needsInit()) {
@@ -1520,7 +1569,8 @@ class tx_table_db {
         $aliasPostfix = '',
         $fallback = false,
         $collateConf = array()
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -1568,7 +1618,8 @@ class tx_table_db {
         $queryParts,
         $aliasPostfix = '',
         $collateConf = array()
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -1603,7 +1654,8 @@ class tx_table_db {
         $aliasPostfix = '',
         $fallback = false,
         $collateConf = array()
-    ) {
+    )
+    {
         if ($queryParts['FROM'] == '') {
             $queryParts['FROM'] = $this->getName();
         }
@@ -1638,7 +1690,8 @@ class tx_table_db {
         $table,
         $conf,
         $returnQueryArray = false
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }
@@ -1807,7 +1860,8 @@ class tx_table_db {
         $table,
         $conf,
         $returnQueryArray = false
-    ) {
+    )
+    {
         if ($this->needsInit()) {
             return false;
         }

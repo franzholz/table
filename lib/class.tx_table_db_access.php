@@ -52,7 +52,8 @@ class tx_table_db_access {
 	 * @param	array		fields to set
 	 * @return	void
 	 */
-	public function prepareFields ($table, $type, $fields) {
+	public function prepareFields ($table, $type, $fields)
+	{
 		$fieldArray = explode (',', $fields);
 		if ($fields == '*') {
 			$this->queryFieldArray[$type][$table->name] = $table->tableFieldArray;
@@ -74,7 +75,8 @@ class tx_table_db_access {
 	 * @param	string		value for the field
 	 * @return	void
 	 */
-	public function prepareWhereFields ($table, $field, $comparator, $value) {
+	public function prepareWhereFields ($table, $field, $comparator, $value)
+	{
 		$tmpArray = $table->tableFieldArray[$field];
 		if ($this->where_clause) {
 			$this->where_clause .= ' AND ';
@@ -91,7 +93,8 @@ class tx_table_db_access {
 	 * @param	string		enable where clause
 	 * @return	void
 	 */
-	public function prepareEnableFields ($table, $value = '') {
+	public function prepareEnableFields ($table, $value = '')
+	{
 		if ($value) {
 			$this->enableFields = $value;
 		} else {
@@ -107,7 +110,8 @@ class tx_table_db_access {
 	 * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
 	 * @return	pointer		MySQL result pointer / DBAL object
 	 */
- 	public function exec_SELECTquery ($where = '', $limit = '') {
+ 	public function exec_SELECTquery ($where = '', $limit = '')
+ 	{
 		$select_fields = '';
 		$comma = '';
 		if (!is_array($this->queryFieldArray['select']) || !is_array($this->tableArray)) {
@@ -166,7 +170,7 @@ class tx_table_db_access {
 			}
 		}
 
-	 	$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery($select_fields, $from_table, $where_clause,$groupBy,$orderBy,$limit);
+	 	$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery($select_fields, $from_table, $where_clause, $groupBy, $orderBy, $limit);
 	 	return $res;
 	 }
 }
