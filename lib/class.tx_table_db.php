@@ -1750,12 +1750,9 @@ class tx_table_db {
             }
         }
 
-        if (!strcmp($conf['pidInList'], '')) {
+        if (!strcmp($conf['pidInList'], '') && (TYPO3_MODE == 'FE')) {
             $conf['pidInList'] = 'this';
         }
-// 		if (!strcmp($conf['pidInList'], '-1')) {
-// 			unset($conf['pidInList']);
-// 		}
 
         $queryParts = $this->getWhere($cObj, $table, $conf, true);
         if ($queryParts === false) {
@@ -1886,7 +1883,10 @@ class tx_table_db {
         if (trim($conf['uidInList'])) {
             if (TYPO3_MODE == 'FE') {
                 $listArr = GeneralUtility::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['uidInList']));
+            } else {
+                $listArr = GeneralUtility::intExplode(',', $conf['uidInList']);
             }
+
             if (count($listArr) == 1) {
                 $query.=' AND '.$this->aliasArray[$table] . '.uid=' . intval($listArr[0]);
             } else {

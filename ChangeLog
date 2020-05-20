@@ -1,5 +1,6 @@
 2020-05-20 Franz Holzinger <franz@ttproducts.de>
     * modifications according the Coding Guidelines
+    * support for backend query generation
 
 2020-01-30 Franz Holzinger <franz@ttproducts.de>
     * readd autoloader file ext_autoload.php
