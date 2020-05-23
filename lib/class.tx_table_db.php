@@ -931,13 +931,13 @@ class tx_table_db {
                             $newBlank = $part3pre . $part3comp . $part3post;
                             $blankArray[] = $newBlank;
                         }
-                        $line = implode (' ', $blankArray);
+                        $line = implode(' ', $blankArray);
                         $bracketCloseArray[] = $line;
                     } else {
                         $bracketCloseArray[] = '';
                     }
                 } // foreach ($bracketClose ...
-                $bracketOpenArray[] = implode (')', $bracketCloseArray);
+                $bracketOpenArray[] = implode(')', $bracketCloseArray);
             } else {
                 $bracketOpenArray[] = '';
             }
@@ -1009,10 +1009,10 @@ class tx_table_db {
                     $languageAdded = false;
                 }
             }
-            $joinFallback .= ' ' . implode ('(', $joinBracketOpenArray);
-            $result = implode ('(', $mainBracketOpenArray);
+            $joinFallback .= ' ' . implode('(', $joinBracketOpenArray);
+            $result = implode('(', $mainBracketOpenArray);
         } else {
-            $result = implode ('(', $bracketOpenArray);
+            $result = implode('(', $bracketOpenArray);
         }
 
         $dummy = '';
@@ -1118,7 +1118,7 @@ class tx_table_db {
                         }
                     }
                 }
-                $result = implode (',', $resultArray);
+                $result = implode(',', $resultArray);
             } else if (strpos($clause,'count(') !== false) {
                 $result = $clause;
             } else if ($clause == '') {
@@ -1155,7 +1155,7 @@ class tx_table_db {
                         $resultArray[] = $realField . $collatePart;
                     }
                 }
-                $result = implode (',', $resultArray);
+                $result = implode(',', $resultArray);
             }
         } else {
             $result = 'error: wrong initialisation before call of transformSelect with ' . $clause;
@@ -1235,7 +1235,7 @@ class tx_table_db {
 
                 $resultArray[] = ($function ? $function . '('  : '' ) . $fieldTmp . ($bracketEndPos ? ')' : '') . ($order ? ' ' . $order : '');
             }
-            $result = implode (',', $resultArray);
+            $result = implode(',', $resultArray);
         }
 
         return $result;
@@ -1266,7 +1266,7 @@ class tx_table_db {
             }
 
             if (count($resultArray) > 1) {
-                $result = implode (',', $resultArray);
+                $result = implode(',', $resultArray);
             } else if (count($resultArray) == 1) {
                 $result = $resultArray[0];
             }
