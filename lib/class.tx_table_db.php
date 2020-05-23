@@ -937,7 +937,7 @@ class tx_table_db {
                         $bracketCloseArray[] = '';
                     }
                 } // foreach ($bracketClose ...
-                $bracketOpenArray[] = implode(')', $bracketCloseArray);
+                $bracketOpenArray[] = implode(') ', $bracketCloseArray);
             } else {
                 $bracketOpenArray[] = '';
             }
@@ -1009,10 +1009,10 @@ class tx_table_db {
                     $languageAdded = false;
                 }
             }
-            $joinFallback .= ' ' . implode('(', $joinBracketOpenArray);
-            $result = implode('(', $mainBracketOpenArray);
+            $joinFallback .= ' ' . implode(' (', $joinBracketOpenArray);
+            $result = implode(' (', $mainBracketOpenArray);
         } else {
-            $result = implode('(', $bracketOpenArray);
+            $result = implode(' (', $bracketOpenArray);
         }
 
         $dummy = '';
