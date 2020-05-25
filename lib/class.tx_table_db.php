@@ -816,6 +816,9 @@ class tx_table_db {
         $joinTableArray = array()
     )
     {
+        // Replace quotes with markers so they don't mess with transformation
+        $clause = str_replace(['\\\'', '\"'], ['###quote###', '###doublequote#####'], $clause);
+
         if ($this->needsInit()) {
             return false;
         }
@@ -1021,6 +1024,9 @@ class tx_table_db {
         } else {
             $this->transformLanguage($dummy, $result);
         }
+
+        // Restore quotes
+        $result = str_replace(['###quote###', '###doublequote#####'], ['\\\'', '\"'], $result);
 
         return $result;
     }
