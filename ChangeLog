@@ -1,3 +1,6 @@
+2020-05-25 Franz Holzinger <franz@ttproducts.de>
+    * fix issue #4: No spaces must be inserted between quotes. The parts between the quotes must remain as they are.
+
 2020-05-23 Franz Holzinger <franz@ttproducts.de>
     * fix issue #2: The method transformWhere shall take care of the blanks before and after round brackets
 

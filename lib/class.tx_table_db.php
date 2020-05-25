@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 1999-2019 Kasper Skårhøj (kasperYYYY@typo3.com)
+*  (c) 1999-2020 Kasper Skårhøj (kasperYYYY@typo3.com)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -808,6 +808,7 @@ class tx_table_db {
     *
     * @param	string		List of fields to select from the table. This is what comes right after "SELECT ...". Required value.
     * @return	pointer		MySQL result pointer / DBAL object
+    * @see https://stackoverflow.com/questions/171480/regex-grabbing-values-between-quotation-marks
     */
     public function transformWhere (
         $clause,
@@ -816,14 +817,31 @@ class tx_table_db {
         $joinTableArray = array()
     )
     {
-        // Replace quotes with markers so they don't mess with transformation
-        $clause = str_replace(['\\\'', '\"'], ['###quote###', '###doublequote#####'], $clause);
-
         if ($this->needsInit()) {
             return false;
         }
 
         $result = '';
+        // The parts between quotes must be preserved.
+        // Therefore theses parts are conserved and replaced by markers. 
+        // At the end of this method the replacements will be undone.
+        $searchpattern = '~(["\'])(.*?[^\\\\])\\1~';
+        preg_match_all($searchpattern, $clause, $match); 
+        $quoteArray = [];
+        $replaceArray = [];
+        if (is_array($match) && count($match) == 3) {
+            $quoteArray = $match['1'];
+            if (is_array($match['2'])) {
+                foreach ($match['2'] as $k => $text) {
+                    $quote = $quoteArray[$k];
+                    $text = $quote . $text . $quote;
+                    $marker =  '__QUOTE' . $k . '__';
+                    $replaceArray[$marker] = $text;
+                    $clause = str_replace($text, $marker, $clause);
+                }
+            }
+        }
+
         $bracketOpen = preg_split('/\(/', $clause);
         $bracketOpenArray = array();
         $bracketOpenOffset = '';
@@ -1025,8 +1043,9 @@ class tx_table_db {
             $this->transformLanguage($dummy, $result);
         }
 
-        // Restore quotes
-        $result = str_replace(['###quote###', '###doublequote#####'], ['\\\'', '\"'], $result);
+        if (!empty($replaceArray)) {
+            $result = str_replace(array_keys($replaceArray), array_values($replaceArray), $result);
+        }
 
         return $result;
     }
