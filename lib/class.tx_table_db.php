@@ -808,7 +808,6 @@ class tx_table_db {
     *
     * @param	string		List of fields to select from the table. This is what comes right after "SELECT ...". Required value.
     * @return	pointer		MySQL result pointer / DBAL object
-    * @see https://stackoverflow.com/questions/171480/regex-grabbing-values-between-quotation-marks
     */
     public function transformWhere (
         $clause,
@@ -825,15 +824,17 @@ class tx_table_db {
         // The parts between quotes must be preserved.
         // Therefore theses parts are conserved and replaced by markers. 
         // At the end of this method the replacements will be undone.
+
         $replaceArray = [];
         $k = 0;
+        // search for the quoted strings using ?<! which is the negative look behind
         while (preg_match('/(\'(.*?(?<!\\\\))\')/', $clause, $match)) {
             $marker = '__QUOTE' . $k . '__';
-            $replaceArray[$marker] = $match[0];
-            $clause = str_replace($match[0], $marker, $clause);
+            $quotedString = $match[0];
+            $replaceArray[$marker] = $quotedString;
+            $clause = str_replace($quotedString, $marker, $clause);
             $k++;
         }
-
         $bracketOpen = preg_split('/\(/', $clause);
         $bracketOpenArray = array();
         $bracketOpenOffset = '';
