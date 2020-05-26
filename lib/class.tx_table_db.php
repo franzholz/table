@@ -825,21 +825,13 @@ class tx_table_db {
         // The parts between quotes must be preserved.
         // Therefore theses parts are conserved and replaced by markers. 
         // At the end of this method the replacements will be undone.
-        $searchpattern = '~(["\'])(.*?[^\\\\])\\1~';
-        preg_match_all($searchpattern, $clause, $match); 
-        $quoteArray = [];
         $replaceArray = [];
-        if (is_array($match) && count($match) == 3) {
-            $quoteArray = $match['1'];
-            if (is_array($match['2'])) {
-                foreach ($match['2'] as $k => $text) {
-                    $quote = $quoteArray[$k];
-                    $text = $quote . $text . $quote;
-                    $marker =  '__QUOTE' . $k . '__';
-                    $replaceArray[$marker] = $text;
-                    $clause = str_replace($text, $marker, $clause);
-                }
-            }
+        $k = 0;
+        while (preg_match('/(\'(.*?(?<!\\\\))\')/', $clause, $match)) {
+            $marker = '__QUOTE' . $k . '__';
+            $replaceArray[$marker] = $match[0];
+            $clause = str_replace($match[0], $marker, $clause);
+            $k++;
         }
 
         $bracketOpen = preg_split('/\(/', $clause);
