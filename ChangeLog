@@ -1,3 +1,6 @@
+2021-01-04 Franz Holzinger <franz@ttproducts.de>
+    * add support for TYPO3 10.4
+
 2020-05-26 Franz Holzinger <franz@ttproducts.de>
     * fix issues #4 and #5: Preserve quotes inside of quoted string in method transformWhere.
 
