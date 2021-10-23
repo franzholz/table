@@ -747,7 +747,7 @@ class tx_table_db {
         }
 
         $ctrl = $GLOBALS['TCA'][$table]['ctrl'];
-        $query='';
+        $query = '';
         if (is_array($ctrl)) {
             if ($ctrl['delete']) {
                 $query .=' AND ' . $aliasTable . '.' . $ctrl['delete'] . '=0';
