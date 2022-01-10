@@ -221,7 +221,7 @@ class tx_table_db {
             foreach ($row as $field => $value) {
                 if (
                     !is_array($value) &&
-                    (strpos($value, '###') !== false) &&
+                    (str_contains($value, '###')) &&
                     (
                         $excludeFieldArray == '' ||
                         is_array($excludeFieldArray) && !in_array($field, $excludeFieldArray)
@@ -268,7 +268,7 @@ class tx_table_db {
     }
 
     // use setTCAFieldArray instead of this
-    public function setTableFieldArray ($table, $tableAlias = '', $fieldArray)
+    public function setTableFieldArray ($table, $fieldArray, $tableAlias = '')
     {
         $this->aliasArray[$table] = ($tableAlias ? $tableAlias : $table);
         foreach ($fieldArray as $fieldbase => $field) {
@@ -520,7 +520,7 @@ class tx_table_db {
                                     }
                                 }
 
-                                if (strpos($charRegExp, '"{s1}"') !== false) {
+                                if (str_contains($charRegExp, '"{s1}"')) {
                                     $tmpCharRegExp = str_replace('"{s1}"', $value2, $charRegExp);
                                 } else {
                                     $tmpCharRegExp = $value2 . $charRegExp;
@@ -969,8 +969,8 @@ class tx_table_db {
             $mainOpenCount = 0;
 
             foreach ($bracketOpenArray as $line) {
-                if (strpos($line, $langAlias) !== false) {
-                    if (strpos($line, ')') !== false) {
+                if (str_contains($line, $langAlias)) {
+                    if (str_contains($line, ')')) {
                         $bracketCloseArray = preg_split('/\)/', $line);
                         $languageAdded = false;
                         foreach ($bracketCloseArray as $k => $line) {
@@ -979,9 +979,9 @@ class tx_table_db {
                                 $line .= ')';
                             }
 
-                            if (strpos($line, $langAlias) === false) {
+                            if (!str_contains($line, $langAlias)) {
                                 if (
-                                    strpos($line, $alias) !== false ||
+                                    str_contains($line, $alias) ||
                                     !$languageAdded
                                 ) {
                                     if ($addClosingBracket && $line != ')') {
@@ -1072,7 +1072,7 @@ class tx_table_db {
             $languageTable = $this->getLangName();
 
             if ($languageTable != '') {
-                if (strpos($table, $languageTable) === false) {
+                if (!str_contains($table, $languageTable)) {
                     if ($bUseJoin && $table != '') {
                         $foreignUidArray = $this->getForeignUidArray();
                         $tableNew = ' LEFT OUTER JOIN ' . $languageTable . ' ' . $this->aliasArray[$languageTable] . ' ON ' . $this->getAliasName() . '.uid=' . $this->aliasArray[$languageTable] . '.' . $foreignUidArray[$languageTable];
@@ -1137,7 +1137,7 @@ class tx_table_db {
                     }
                 }
                 $result = implode(',', $resultArray);
-            } else if (strpos($clause,'count(') !== false) {
+            } else if (str_contains($clause,'count(')) {
                 $result = $clause;
             } else if ($clause == '') {
                 // nothing
@@ -1152,7 +1152,7 @@ class tx_table_db {
                     } else {
                         $table = $this->getName();
                         $realField = $field;
-                        if (strpos($realField, ' ') !== false) {
+                        if (str_contains($realField, ' ')) {
                             $bAddAlias = false;
                         }
                     }
@@ -1459,11 +1459,11 @@ class tx_table_db {
         }
 
         $bJoinFound = false;
-        if (strpos($from, $this->getName()) !== false) {
+        if (str_contains($from, $this->getName())) {
             $tables = $from;
         }
 
-        if (strpos($from, 'JOIN') !== false) {
+        if (str_contains($from, 'JOIN')) {
             $bJoinFound = true;
         }
 
@@ -1477,7 +1477,7 @@ class tx_table_db {
                 $fallback
             );
         $joinTableArray = array();
-        if (strpos($joinTables, ',') !== false) {
+        if (str_contains($joinTables, ',')) {
             $joinTableArray = GeneralUtility::trimExplode(',', $joinTables);
         }
         $bAllTablesIncluded = true;
@@ -1485,7 +1485,7 @@ class tx_table_db {
 
         if ($tables != '') {
             foreach ($joinTableArray as $joinTable) {
-                if ($joinTable != '' && strpos($tables, $joinTable) === false) {
+                if ($joinTable != '' && !str_contains($tables, $joinTable)) {
                     $bAllTablesIncluded = false;
                     $excludedArray[] = $joinTable;
                 }
@@ -1510,7 +1510,7 @@ class tx_table_db {
         $joinFallback = '';
 
         if ($tables == '') {
-            if ($fallback && strpos($joinTables, ' LEFT JOIN ') === false) {
+            if ($fallback && !str_contains($joinTables, ' LEFT JOIN ')) {
                 $joinTableArray = GeneralUtility::trimExplode(',', $joinTables);
                 if (count($joinTableArray) == 2) {
                     $tables = $joinTableArray['0'] . ' LEFT JOIN ' . $joinTableArray['1'] . ' ON ';

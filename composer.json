@@ -22,8 +22,8 @@
     "GPL-2.0-or-later"
   ],
   "require": {
-    "typo3/cms-core": "^8.7 || ^9.5 || ^10.4 || ^11.5",
-    "typo3-ter/div2007": "^1.10"
+    "typo3/cms-core": "^11.5",
+    "typo3-ter/div2007": "^1.13"
   },
   "autoload": {
     "classmap": [
