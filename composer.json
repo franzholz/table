@@ -32,7 +32,7 @@
     ]
   },
   "replace": {
-    "jambagecom/table": "self.version"
+    "typo3-ter/table": "self.version"
   },
   "extra": {
     "typo3/cms": {
