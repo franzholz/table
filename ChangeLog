@@ -1,3 +1,7 @@
+2022-02-09 Franz Holzinger <franz@ttproducts.de>
+    * remove method setTableFieldArray
+    * bugfixes for PHP 8
+
 2022-01-24 Franz Holzinger <franz@ttproducts.de>
     * works with PHP 7.4 - 8 and TYPO3 10 - 11.5 now
 

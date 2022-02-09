@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 1999-2020 Kasper Skårhøj (kasperYYYY@typo3.com)
+*  (c) 1999-2022 Kasper Skårhøj (kasperYYYY@typo3.com)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -41,41 +41,43 @@
 *
 */
 
+
 use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 
+
 class tx_table_db {
-    public $tableFieldArray = array(); // array of fields for each table
+    public $tableFieldArray = []; // array of fields for each table
     public $defaultFieldArray =
-            array(
+            [
                 'uid'=>'uid',
                 'pid'=>'pid',
                 'tstamp'=>'tstamp',
                 'crdate'=>'crdate',
                 'deleted' => 'deleted'
-            ); // TYPO3 default fields
+            ]; // TYPO3 default fields
     public $noTCAFieldArray =
-            array(
+            [
                 'cruser_id' => 'cruser_id',
                 't3ver_oid' => 't3ver_oid',
                 't3ver_id' => 't3ver_id',
                 't3ver_label' => 't3ver_label',
                 'sorting' => 'sorting',
-            ); // fields which do not have an entry in TCA
-    public $newFieldArray = array(); 	// containts the field names which are no default fields (needed for insert)
-    public $aliasArray = array(); // alias names for tables
-    public $langArray = array(); // array of language values
-    public $markerArray = array(); // array of marker values
+            ]; // fields which do not have an entry in TCA
+    public $newFieldArray = []; 	// containts the field names which are no default fields (needed for insert)
+    public $aliasArray = []; // alias names for tables
+    public $langArray = []; // array of language values
+    public $markerArray = []; // array of marker values
     public $name; // name of the table
     public $langname; // name of the language table
     public $enableFields;
-    public $foreignUidArray = array();	// foreign keys to uid of table
+    public $foreignUidArray = [];	// foreign keys to uid of table
     public $LLkey; 	// language key to use
-    public $requiredFieldArray = array(); // fields which must be read in even if no markers are found - needed in extensions
+    public $requiredFieldArray = []; // fields which must be read in even if no markers are found - needed in extensions
     public $columnPrefix; // prefix put before the column names
-    public $config = array(); // configuration array
+    public $config = []; // configuration array
     public $bNeedsInit = true;
 
 
@@ -83,15 +85,13 @@ class tx_table_db {
     public function init (
         $table,
         $tableAlias = '',
-        $tableFieldArray = array()
+        $tableFieldArray = []
     )
     {
         $this->aliasArray [$table] = ($tableAlias ? $tableAlias : $table);
         if (count($tableFieldArray)) {
             $this->tableFieldArray = $tableFieldArray;
         }
-
-        $this->bNeedsInit = false;
     }
 
     public function needsInit ()
@@ -135,12 +135,12 @@ class tx_table_db {
         return $this->aliasArray[$name];
     }
 
-    public function setConfig (&$config)
+    public function setConfig ($config)
     {
-        $this->config = &$config;
+        $this->config = $config;
     }
 
-    public function &getConfig ()
+    public function getConfig ()
     {
         return $this->config;
     }
@@ -164,9 +164,11 @@ class tx_table_db {
     public function getField ($field)
     {
         $result = $field;
-        $fieldArray = $this->tableFieldArray[$field];
-        if (isset($fieldArray) && is_array($fieldArray)) {
-            $result = current($fieldArray);
+        if (isset($this->tableFieldArray[$field])) {
+            $fieldArray = $this->tableFieldArray[$field];
+            if (isset($fieldArray) && is_array($fieldArray)) {
+                $result = current($fieldArray);
+            }
         }
         return $result;
     }
@@ -184,7 +186,7 @@ class tx_table_db {
     public function initFile (
         $filename,
         &$retLangArray,
-        $keyWrapArray = array()
+        $keyWrapArray = []
     )
     {
         if (
@@ -213,7 +215,7 @@ class tx_table_db {
 
     public function substituteMarkerArray (
         &$row,
-        $excludeFieldArray = array()
+        $excludeFieldArray = []
     )
     {
         if (is_array($row)) {
@@ -228,7 +230,7 @@ class tx_table_db {
                     )
                 ) {
                     $valueArray = explode('###', $value);
-                    $newValueArray = array();
+                    $newValueArray = [];
 
                     foreach ($valueArray as $k => $valPar) {
                         $trimValPar = trim($valPar);
@@ -259,7 +261,7 @@ class tx_table_db {
 
     public function initMarkerFile ($filename)
     {
-        $this->initFile($filename, $this->markerArray, array('###', '###'));
+        $this->initFile($filename, $this->markerArray, ['###', '###']);
     }
 
     public function setColumnPrefix ($prefix)
@@ -267,23 +269,14 @@ class tx_table_db {
         $this->columnPrefix = $prefix;
     }
 
-    // use setTCAFieldArray instead of this
-    public function setTableFieldArray ($table, $fieldArray, $tableAlias = '')
-    {
-        $this->aliasArray[$table] = ($tableAlias ? $tableAlias : $table);
-        foreach ($fieldArray as $fieldbase => $field) {
-            $this->tableFieldArray[$fieldbase] = array ($table => $field);
-        }
-    }
-
     public function getRequiredFieldArray ()
     {
         return $this->requiredFieldArray;
     }
 
-    public function setRequiredFieldArray ($fieldArray = array())
+    public function setRequiredFieldArray ($fieldArray = [])
     {
-        $requiredFieldArray = array();
+        $requiredFieldArray = [];
         $defaultFieldArray = $this->getDefaultFieldArray();
         $noTcaFieldArray = $this->getNoTcaFieldArray();
         foreach ($fieldArray as $field) {
@@ -298,7 +291,7 @@ class tx_table_db {
         $this->requiredFieldArray = $requiredFieldArray;
     }
 
-    public function addRequiredFieldArray ($fieldArray = array())
+    public function addRequiredFieldArray ($fieldArray = [])
     {
         $this->requiredFieldArray = array_merge($this->requiredFieldArray, $fieldArray);
     }
@@ -318,7 +311,7 @@ class tx_table_db {
         return $this->noTCAFieldArray;
     }
 
-    public function setDefaultFieldArray ($defaultFieldArray = array())
+    public function setDefaultFieldArray ($defaultFieldArray = [])
     {
         if (isset($this->defaultFieldArray) && is_array($this->defaultFieldArray)) {
             foreach ($this->defaultFieldArray as $field => $realField) {
@@ -330,18 +323,18 @@ class tx_table_db {
         $this->defaultFieldArray = $defaultFieldArray;
     }
 
-    public function addDefaultFieldArray ($defaultFieldArray = array())
+    public function addDefaultFieldArray ($defaultFieldArray = [])
     {
         $this->defaultFieldArray = array_merge($this->defaultFieldArray, $defaultFieldArray);
     }
 
     public function setNewFieldArray ()
     {
-        $this->newFieldArray = array();
+        $this->newFieldArray = [];
 
         if (isset($this->tableFieldArray) && is_array($this->tableFieldArray)) {
             foreach ($this->tableFieldArray as $fieldname => $value) {
-                if (!($this->defaultFieldArray[$fieldname])) {
+                if (empty($this->defaultFieldArray[$fieldname])) {
                     $this->newFieldArray[] = $fieldname;
                 }
             }
@@ -358,12 +351,14 @@ class tx_table_db {
         $table = $this->getName();
 
         if (
+            isset($GLOBALS['TCA'][$table]) &&
             is_array($GLOBALS['TCA'][$table]) &&
+            isset($GLOBALS['TCA'][$table][$part]) &&
             is_array($GLOBALS['TCA'][$table][$part])
         ) {
-            if ($field) {
+            if ($field && !empty($GLOBALS['TCA'][$table][$part][$field])) {
                 $result = $GLOBALS['TCA'][$table][$part][$field];
-            } else {
+            } else if (!empty($GLOBALS['TCA'][$table][$part])) {
                 $result = $GLOBALS['TCA'][$table][$part];
             }
         }
@@ -378,7 +373,9 @@ class tx_table_db {
         $table = $this->langname;
 
         if (
+            isset($GLOBALS['TCA'][$table]) &&
             is_array($GLOBALS['TCA'][$table]) &&
+            isset($GLOBALS['TCA'][$table][$part]) &&
             is_array($GLOBALS['TCA'][$table][$part])
         ) {
             if ($field) {
@@ -407,7 +404,7 @@ class tx_table_db {
             if (
                 !isset($this->tableFieldArray[$field])
             ) {
-                $this->tableFieldArray[$field] = array($table => $field);
+                $this->tableFieldArray[$field] = [$table => $field];
             }
         }
     }
@@ -448,11 +445,11 @@ class tx_table_db {
         $searchFieldList,
         $bUseLanguage = true,
         $charRegExp = '',
-        $replaceConf = array()
+        $replaceConf = []
     )
     {
         $where = '';
-        $replaceArray = array();
+        $replaceArray = [];
 
         if (!empty($replaceConf)) {
             foreach ($replaceConf as $search => $replace) {
@@ -464,7 +461,7 @@ class tx_table_db {
         if ($sw) {
             $tablename = $this->getName();
             $languageName = $this->getLangName();
-            $aliasArray = array();
+            $aliasArray = [];
             $aliasArray[$tablename] = $this->getAlias();
             $aliasArray[$languageName] = $this->getLangAlias();
             $searchFields = explode(',', $searchFieldList);
@@ -472,9 +469,9 @@ class tx_table_db {
 
             foreach ($kw as $val) {
                 $val = trim($val);
-                $where_p = array();
+                $where_p = [];
                 if (strlen($val) >= 2) {
-                    $valueArray = array();
+                    $valueArray = [];
                     $valueArray[$tablename] =
                         $GLOBALS['TYPO3_DB']->escapeStrForLike(
                             $GLOBALS['TYPO3_DB']->quoteStr(
@@ -504,7 +501,7 @@ class tx_table_db {
                         if ($theTablename != '') {
                             $part2 = '';
                             if ($charRegExp != '') {
-                                $comparatorArray = array();
+                                $comparatorArray = [];
                                 $value2 = $valueArray[$theTablename];
 
                                 if (!empty($replaceArray)) {
@@ -512,7 +509,7 @@ class tx_table_db {
                                         if (empty($searchArray)) {
                                             continue;
                                         }
-                                        $variantArray = array();
+                                        $variantArray = [];
                                         $variantArray[] = $search;
                                         $variantArray = array_merge($variantArray, $searchArray);
                                         $value2 =
@@ -564,8 +561,10 @@ class tx_table_db {
             reset($this->aliasArray);
             $tmp = key($this->aliasArray);
 
-            if (is_array($this->defaultFieldArray)) {
-
+            if (
+                isset($this->defaultFieldArray) &&
+                is_array($this->defaultFieldArray)
+            ) {
                 foreach ($this->defaultFieldArray as $field => $realField) {
                     if (
                         $field != 'uid' &&
@@ -575,7 +574,7 @@ class tx_table_db {
                         ) ||
                         $table == key($this->aliasArray)
                     ) {
-                        $this->tableFieldArray[$field] = array($table => $realField);
+                        $this->tableFieldArray[$field] = [$table => $realField];
                     }
                     if ($field == 'uid') {
                         // nothing yet
@@ -583,16 +582,23 @@ class tx_table_db {
                 }
             }
 
-            if ($GLOBALS['TCA'][$table]['columns']) {
+            if (isset($GLOBALS['TCA'][$table]['columns'])) {
                 foreach ($GLOBALS['TCA'][$table]['columns'] as $field => $fieldArray) {
 
                     if (
-                        $fieldArray['config']['type'] != 'passthrough' &&
-                        $fieldArray['config']['db'] != 'passthrough'
+                        (
+                            !isset($fieldArray['config']['type']) ||
+                            $fieldArray['config']['type'] != 'passthrough'
+                        ) &&
+                        (
+                            !isset($fieldArray['config']['db']) ||
+                            $fieldArray['config']['db'] != 'passthrough'
+                        )
                             ||
                         $field == 'sorting'
                     ) {
-                        $this->tableFieldArray[$field] = array($table => $field);
+                        $this->tableFieldArray[$field] = [$table => $field];
+                        $foreignTable = $fieldArray['config']['foreign_table'] ?? '';
 
                             // is there a foreign key to the first table?
                         if (
@@ -600,7 +606,9 @@ class tx_table_db {
                                 $fieldArray['config']['type'] == 'select' ||
                                 $fieldArray['config']['type'] == 'group'
                             ) &&
-                            ($foreignTable = $fieldArray['config']['foreign_table']) != ''
+                            (
+                                $foreignTable != ''
+                            )
                         ) {
                             $this->setForeignUidArray($table, $field);
                         }
@@ -619,7 +627,7 @@ class tx_table_db {
                         $field != 'uid' &&
                         isset($GLOBALS['TCA'][$table]['columns'][$field])
                     ) {
-                        $this->tableFieldArray[$field] = array ($table => $field);
+                        $this->tableFieldArray[$field] = [$table => $field];
                     }
                     if ($field == 'uid') {
                         // nothing yet
@@ -646,7 +654,7 @@ class tx_table_db {
     */
     public function getEnableFieldArray (
         $show_hidden = -1,
-        $ignore_array = array(),
+        $ignore_array = [],
         $table = ''
     )
     {
@@ -656,24 +664,25 @@ class tx_table_db {
         if (!$table) {
             $table = $this->getName();
         }
-        $aliasTable = (isset($this->aliasArray[$table]) ? $this->aliasArray[$table] : $table);
+        $aliasTable = ($this->aliasArray[$table] ?? $table);
+        $context = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
 
-        if ($show_hidden==-1 && is_object($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
-            $show_hidden = $table == 'pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
+        if ($show_hidden == -1 && is_object($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
+            $show_hidden = $table == 'pages' ? $context->getPropertyFromAspect('visibility', 'includeHiddenPages') : $context->getPropertyFromAspect('visibility', 'includeHiddenContent');
         }
         if ($show_hidden == -1) {
             $show_hidden = 0;	// If show_hidden was not changed during the previous evaluation, do it here.
         }
 
         $ctrl = $GLOBALS['TCA'][$table]['ctrl'];
-        $fieldArray = array();
-        if (is_array($ctrl)) {
+        $fieldArray = [];
+        if (isset($ctrl) && is_array($ctrl)) {
             if ($ctrl['delete']) {
                 $query .= ' AND ' . $aliasTable . '.' . $ctrl['delete'] . '=0';
                 $fieldArray[] = 'delete';
             }
 
-            if (is_array($ctrl['enablecolumns'])) {
+            if (isset($ctrl['enablecolumns'])) {
                 if ($ctrl['enablecolumns']['disabled'] && !$show_hidden && !$ignore_array['disabled']) {
                     $fieldArray[] = $ctrl['enablecolumns']['disabled'];
                 }
@@ -689,13 +698,13 @@ class tx_table_db {
 
                     // Call hook functions for additional enableColumns
                     // It is used by the extension ingmar_accessctrl which enables assigning more than one usergroup to content and page records
-                if (is_array($TYPO3_CONF_VARS['SC_OPTIONS']['ext/table/lib/class.tx_table_db.php']['addEnableFieldArray'])) {
-                    $_params = array(
+                if (isset($TYPO3_CONF_VARS['SC_OPTIONS']['ext/table/lib/class.tx_table_db.php']['addEnableFieldArray'])) {
+                    $_params = [
                         'table' => $table,
                         'show_hidden' => $show_hidden,
                         'ignore_array' => $ignore_array,
                         'ctrl' => $ctrl
-                    );
+                    ];
                     foreach($TYPO3_CONF_VARS['SC_OPTIONS']['ext/table/lib/class.tx_table_db.php']['addEnableFieldArray'] as $_funcRef) {
                         $addFieldArray = GeneralUtility::callUserFunction($_funcRef, $_params,$this);
                         if (isset($addFieldArray) && is_array($addFieldArray)) {
@@ -727,7 +736,7 @@ class tx_table_db {
     public function enableFields (
         $aliasPostfix = '',
         $show_hidden = -1,
-        $ignore_array = array(),
+        $ignore_array = [],
         $table = ''
     )
     {
@@ -737,16 +746,17 @@ class tx_table_db {
         if (!$table) {
             $table = $this->getName();
         }
+        $context = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
         $aliasTable = (isset($this->aliasArray[$table]) ? $this->aliasArray[$table] . $aliasPostfix : $table);
 
         if ($show_hidden==-1 && is_object($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
-            $show_hidden = $table == 'pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
+            $show_hidden = $table == 'pages' ? $context->getPropertyFromAspect('visibility', 'includeHiddenPages') : $context->getPropertyFromAspect('visibility', 'includeHiddenContent');
         }
         if ($show_hidden == -1) {
             $show_hidden = 0;	// If show_hidden was not changed during the previous evaluation, do it here.
         }
 
-        $ctrl = $GLOBALS['TCA'][$table]['ctrl'];
+        $ctrl = $GLOBALS['TCA'][$table]['ctrl'] ?? '';
         $query = '';
         if (is_array($ctrl)) {
             if ($ctrl['delete']) {
@@ -754,40 +764,42 @@ class tx_table_db {
             }
 
             if (is_array($ctrl['enablecolumns'])) {
-                if ($ctrl['enablecolumns']['disabled'] && !$show_hidden && !$ignore_array['disabled']) {
+                if (!empty($ctrl['enablecolumns']['disabled']) && !$show_hidden && empty($ignore_array['disabled'])) {
                     $field = $aliasTable . '.' . $ctrl['enablecolumns']['disabled'];
                     $query .= ' AND ' . $field . '=0';
                 }
-                if ($ctrl['enablecolumns']['starttime'] && !$ignore_array['starttime']) {
+                if (!empty($ctrl['enablecolumns']['starttime']) && empty($ignore_array['starttime'])) {
                     $field = $aliasTable . '.' . $ctrl['enablecolumns']['starttime'];
                     $query.=' AND (' . $field . '<=' . $GLOBALS['SIM_EXEC_TIME'].')';
                 }
-                if ($ctrl['enablecolumns']['endtime'] && !$ignore_array['endtime']) {
+                if (!empty($ctrl['enablecolumns']['endtime']) && empty($ignore_array['endtime'])) {
                     $field = $aliasTable . '.' . $ctrl['enablecolumns']['endtime'];
                     $query .= ' AND (' . $field . '=0 OR ' . $field . '>' . $GLOBALS['SIM_EXEC_TIME'] . ')';
                 }
                 if (
                     is_object($GLOBALS['TSFE']) &&
-                    $ctrl['enablecolumns']['fe_group'] &&
-                    !$ignore_array['fe_group']
+                    !empty($ctrl['enablecolumns']['fe_group']) &&
+                    empty($ignore_array['fe_group'])
                 ) {
                     $field = $aliasTable . '.' . $ctrl['enablecolumns']['fe_group'];
-                    $gr_list = $GLOBALS['TSFE']->gr_list;
-                    if (!strcmp($gr_list, '')) {
+                    $gr_list = $context->getPropertyFromAspect('frontend.user', 'groupIds');
+                    if (empty($gr_list)) {
                         $gr_list = 0;
+                    } else {
+                        $gr_list = implode(',', $gr_list);
                     }
                     $query .= ' AND ' . $field . ' IN (\' \',' . $gr_list . ')';
                 }
 
                     // Call hook functions for additional enableColumns
                     // It is used by the extension ingmar_accessctrl which enables assigning more than one usergroup to content and page records
-                if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_page.php']['addEnableColumns'])) {
-                    $_params = array(
+                if (isset($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_page.php']['addEnableColumns'])) {
+                    $_params = [
                         'table' => $table,
                         'show_hidden' => $show_hidden,
                         'ignore_array' => $ignore_array,
                         'ctrl' => $ctrl
-                    );
+                    ];
                     foreach($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_page.php']['addEnableColumns'] as $_funcRef) {
                         $query .= GeneralUtility::callUserFunction($_funcRef, $_params, $this);
                     }
@@ -813,7 +825,7 @@ class tx_table_db {
         $clause,
         $aliasPostfix = '',
         &$joinFallback = '',
-        $joinTableArray = array()
+        $joinTableArray = []
     )
     {
         if ($this->needsInit()) {
@@ -836,7 +848,7 @@ class tx_table_db {
             $k++;
         }
         $bracketOpen = preg_split('/\(/', $clause);
-        $bracketOpenArray = array();
+        $bracketOpenArray = [];
         $bracketOpenOffset = '';
 
         foreach ($bracketOpen as $key => $part) {
@@ -861,13 +873,13 @@ class tx_table_db {
                     }
                 }
                 $bracketClose = preg_split('/\)/', $part);
-                $bracketCloseArray = array();
+                $bracketCloseArray = [];
 
                 foreach ($bracketClose as $key2 => $part2) {
 
                     if (isset($part2)) {
                         $blank = preg_split('/ /', $part2, -1, PREG_SPLIT_NO_EMPTY);
-                        $blankArray = array();
+                        $blankArray = [];
 
                         foreach ($blank as $key3 => $part3) {
                             $chars = preg_split('//', $part3, -1, PREG_SPLIT_NO_EMPTY);
@@ -928,14 +940,14 @@ class tx_table_db {
                                 }
                             }
 
-                            if ($part3pre) {
+                            if (strlen($part3pre) && isset($this->tableFieldArray[$part3pre])) {
                                 $tableField = $this->tableFieldArray[$part3pre];
                                 if (is_array($tableField)) {
                                     $part3pre = $this->aliasArray[key($tableField)] . $aliasPostfix . '.' . current($tableField);
                                 }
                             }
 
-                            if ($part3post) {
+                            if (strlen($part3post) && isset($this->tableFieldArray[$part3post])) {
                                 $tableField = $this->tableFieldArray[$part3post];
                                 if (is_array($tableField)) {
                                     $part3post = $this->aliasArray[key($tableField)] .  $aliasPostfix . '.' . current($tableField);
@@ -960,8 +972,8 @@ class tx_table_db {
         if ($joinFallback != '') {
             $alias = $this->getAlias();
             $langAlias = $this->getLangAlias();
-            $mainBracketOpenArray = array();
-            $joinBracketOpenArray = array();
+            $mainBracketOpenArray = [];
+            $joinBracketOpenArray = [];
             $countMain = 0;
             $countJoin = 0;
             $indexMain = 0;
@@ -1094,13 +1106,13 @@ class tx_table_db {
     *
     * @param	string		List of fields to select from the table. This is what comes right after "SELECT ...". Required value.
     * @param	string		postfix for the alias
-    * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
+    * @param	array		The collation configuration properties: field name as key and collation as value e.g. ['title' => 'utf8_bin'];
     * @return	string		Select clause
     */
     public function transformSelect (
         $clause,
         $aliasPostfix = '',
-        $collateConf = array()
+        $collateConf = []
     )
     {
         if ($this->needsInit()) {
@@ -1108,7 +1120,7 @@ class tx_table_db {
         }
 
         $result = false;
-        $resultArray = array();
+        $resultArray = [];
 
         if (
             is_array($this->aliasArray) &&
@@ -1146,7 +1158,10 @@ class tx_table_db {
 
                 foreach ($fieldArray as $k => $field) {
                     $bAddAlias = true;
-                    if (is_array($this->tableFieldArray[$field])) {
+                    if (
+                        isset($this->tableFieldArray[$field]) &&
+                        is_array($this->tableFieldArray[$field])
+                    ) {
                         $table = key($this->tableFieldArray[$field]);
                         $realField = $this->tableFieldArray[$field][$table];
                     } else {
@@ -1160,6 +1175,7 @@ class tx_table_db {
                     if (
                         isset($collateConf) &&
                         is_array($collateConf) &&
+                        isset($collateConf[$table]) &&
                         is_array($collateConf[$table]) &&
                         isset($collateConf[$table][$realField])
                     ) {
@@ -1202,6 +1218,7 @@ class tx_table_db {
             // nothing
         } else {
             $parts = GeneralUtility::trimExplode(',', $clause);
+            $order = '';
 
             foreach ($parts as $k => $fieldExpression) {
                 $spaceStartPos = strpos($fieldExpression, ' ');
@@ -1238,7 +1255,7 @@ class tx_table_db {
                     is_array($this->tableFieldArray[$field])
                 ) { // TODO: check this
                     $tableName = key($this->tableFieldArray[$field]);
-                } else if (strlen($this->noTCAFieldArray[$field])) {
+                } else if (isset($this->noTCAFieldArray[$field]) && strlen($this->noTCAFieldArray[$field])) {
                     $tableName = $this->getName();
                 } else {
                     $tableName = '';
@@ -1251,7 +1268,7 @@ class tx_table_db {
                     $fieldTmp = $field;
                 }
 
-                $resultArray[] = ($function ? $function . '('  : '' ) . $fieldTmp . ($bracketEndPos ? ')' : '') . ($order ? ' ' . $order : '');
+                $resultArray[] = ($function ? $function . '('  : '' ) . $fieldTmp . ($bracketEndPos ? ')' : '') . (isset($order) && strlen($order) ? ' ' . $order : '');
             }
             $result = implode(',', $resultArray);
         }
@@ -1265,13 +1282,13 @@ class tx_table_db {
     * @param 	string		exclude table
     * @return	string		table names with aliases separated by comma
     */
-    public function getAdditionalTables ($excludeArray = array())
+    public function getAdditionalTables ($excludeArray = [])
     {
         if ($this->needsInit()) {
             return false;
         }
 
-        $resultArray = array();
+        $resultArray = [];
         $result = '';
 
         if (count($this->langArray)) {
@@ -1316,15 +1333,15 @@ class tx_table_db {
             $bTableFound = true;
         }
 
-        $resultArray = array();
+        $resultArray = [];
         $result = '';
-        $joinArray = array();
+        $joinArray = [];
 
         foreach ($this->aliasArray as $table => $alias) {
             if ($table != $theName || !$bTableFound) {
                 $resultArray[] = $table . ' ' . $alias . $aliasPostfix;
 
-                if ($this->foreignUidArray[$table] && $table != $theName) {
+                if (isset($this->foreignUidArray[$table]) && $table != $theName) {
                     $joinArray[] =
                         $this->aliasArray[$theName] .
                         '.uid = ' . $this->aliasArray[$table] . $aliasPostfix . '.' . $this->foreignUidArray[$table];
@@ -1358,7 +1375,10 @@ class tx_table_db {
         $tablename = $this->getName();
 
             // Call all changeBasket hooks
-        if (is_array ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow'])) {
+        if (
+            isset($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow']) &&
+            is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow'])
+        ) {
             foreach  ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow'] as $classRef) {
                 $hookObj= GeneralUtility::getUserObj($classRef);
                 if (method_exists($hookObj, 'transformRow')) {
@@ -1391,7 +1411,7 @@ class tx_table_db {
         if ($this->needsInit()) {
             return false;
         }
-        $fieldsArray = array();
+        $fieldsArray = [];
         $fieldsArray['pid'] = $pid;
         $fieldsArray['tstamp'] = time();
         $fieldsArray['crdate'] = time();
@@ -1437,7 +1457,7 @@ class tx_table_db {
     * @param	string		Optional FROM parts to be able to put a JOIN inside
     * @param	string		postfix for the alias
     * @param	boolean		FALLBACK
-    * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
+    * @param	array		The collation configuration properties: field name as key and collation as value e.g. ['title' => 'utf8_bin'];
     * @return	pointer		MySQL result pointer / DBAL object
     */
     public function exec_SELECTquery (
@@ -1449,7 +1469,7 @@ class tx_table_db {
         $from = '',
         $aliasPostfix = '',
         $fallback = false,
-        $collateConf = array()
+        $collateConf = []
     )
     {
         $tables = '';
@@ -1476,12 +1496,12 @@ class tx_table_db {
                 $aliasPostfix,
                 $fallback
             );
-        $joinTableArray = array();
+        $joinTableArray = [];
         if (str_contains($joinTables, ',')) {
             $joinTableArray = GeneralUtility::trimExplode(',', $joinTables);
         }
         $bAllTablesIncluded = true;
-        $excludedArray = array();
+        $excludedArray = [];
 
         if ($tables != '') {
             foreach ($joinTableArray as $joinTable) {
@@ -1496,7 +1516,7 @@ class tx_table_db {
             !$from ||
             !$bAllTablesIncluded
         ) { // the from fields do not already contain all aliases
-            $tableArray = array();
+            $tableArray = [];
             if ($tables != '') {
                 $tableArray = GeneralUtility::trimExplode(',', $tables);
                 if ($excludedArray) {
@@ -1506,7 +1526,7 @@ class tx_table_db {
             }
         }
 
-        $joinTableArray = array();
+        $joinTableArray = [];
         $joinFallback = '';
 
         if ($tables == '') {
@@ -1574,7 +1594,7 @@ class tx_table_db {
     * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
     * @param	string		postfix for the alias
     * @param	boolean		FALLBACK
-    * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
+    * @param	array		The collation configuration properties: field name as key and collation as value e.g. ['title' => 'utf8_bin'];
     * @return	mixed		The SELECT query in an array as parts.
     * @access public
     */
@@ -1586,7 +1606,7 @@ class tx_table_db {
         $limit = '',
         $aliasPostfix = '',
         $fallback = false,
-        $collateConf = array()
+        $collateConf = []
     )
     {
         if ($this->needsInit()) {
@@ -1612,7 +1632,7 @@ class tx_table_db {
         $groupBy = $this->transformOrderby($groupBy);
         $orderBy = $this->transformOrderby($orderBy);
 
-        $queryParts = array();
+        $queryParts = [];
         $queryParts['FROM'] = $tables;
         $queryParts['SELECT'] = $select_fields;
         $queryParts['WHERE'] = $where_clause;
@@ -1628,14 +1648,14 @@ class tx_table_db {
     *
     * @param	array		Query parts array
     * @param	string		postfix for the alias
-    * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
+    * @param	array		The collation configuration properties: field name as key and collation as value e.g. ['title' => 'utf8_bin'];
     * @return	pointer		MySQL select result pointer / DBAL object
     * @see getQuery()
     */
     public function getQueryArray (
         $queryParts,
         $aliasPostfix = '',
-        $collateConf = array()
+        $collateConf = []
     )
     {
         if ($this->needsInit()) {
@@ -1663,7 +1683,7 @@ class tx_table_db {
     * @param	array		Query parts array
     * @param	string		postfix for the alias
     * @param	boolean		FALLBACK
-    * @param	array		The collation configuration properties: field name as key and collation as value e.g. array('title' => 'utf8_bin');
+    * @param	array		The collation configuration properties: field name as key and collation as value e.g. ['title' => 'utf8_bin'];
     * @return	pointer		MySQL select result pointer / DBAL object
     * @see exec_SELECTquery()
     */
@@ -1671,7 +1691,7 @@ class tx_table_db {
         $queryParts,
         $aliasPostfix = '',
         $fallback = false,
-        $collateConf = array()
+        $collateConf = []
     )
     {
         if ($queryParts['FROM'] == '') {
@@ -1714,15 +1734,16 @@ class tx_table_db {
             return false;
         }
         $result = '';
+        $error = false;
 
             // Resolve stdWrap in these properties first
-        $properties = array(
+        $properties = [
             'pidInList', 'uidInList', 'languageField', 'selectFields', 'max', 'begin', 'groupBy', 'orderBy', 'join', 'leftjoin', 'rightjoin'
-        );
+        ];
         foreach ($properties as $property) {
-            $conf[$property] = isset($conf[$property . '.'])
-                    ? trim($this->stdWrap($conf[$property], $conf[$property . '.']))
-                    : trim($conf[$property]);
+            $conf[$property] = (isset($conf[$property . '.'])
+                    ? trim($cObj->stdWrap($conf[$property], $conf[$property . '.']))
+                    : (isset($conf[$property]) ? trim($conf[$property]) : ''));
             if ($conf[$property] === '') {
                 unset($conf[$property]);
             }
@@ -1731,16 +1752,16 @@ class tx_table_db {
                 unset($conf[$property . '.']);
             }
         }
-        $conf['pidInList'] = trim($cObj->stdWrap($conf['pidInList'], $conf['pidInList.']));
+//         $conf['pidInList'] = trim($cObj->stdWrap($conf['pidInList'], $conf['pidInList.']));
 
             // Handle PDO-style named parameter markers first
         $queryMarkers = $cObj->getQueryMarkers($table, $conf);
 
             // replace the markers in the non-stdWrap properties
         foreach ($queryMarkers as $marker => $markerValue) {
-            $properties = array(
+            $properties = [
                 'uidInList', 'selectFields', 'where', 'max', 'begin', 'groupBy', 'orderBy', 'join', 'leftjoin', 'rightjoin'
-            );
+            ];
             foreach ($properties as $property) {
                 if ($conf[$property]) {
                     $conf[$property] = str_replace('###' . $marker . '###', $markerValue, $conf[$property]);
@@ -1780,11 +1801,11 @@ class tx_table_db {
         $queryParts['SELECT'] = $conf['selectFields'] ? $conf['selectFields'] : '*';
 
             // Setting LIMIT:
-        if ($conf['max'] || $conf['begin']) {
-            $error = 0;
+        if (isset($conf['max']) && strlen($conf['max']) || isset($conf['begin']) && strlen($conf['begin'])) {
+            $error = false;
 
             // Finding the total number of records, if used:
-            if (strpos(strtolower($conf['begin'] . $conf['max']), 'total') != false) {
+            if (strpos(strtolower(($conf['begin'] ?? '') . ($conf['max'] ?? '')), 'total') != false) {
                 $res =
                     $GLOBALS['TYPO3_DB']->exec_SELECTquery(
                         'count(*)',
@@ -1803,9 +1824,9 @@ class tx_table_db {
             }
 
             if (!$error) {
-                $begin = ceil($cObj->calc($conf['begin']));
+                $begin = ceil($cObj->calc($conf['begin'] ?? ''));
                 $conf['begin'] = MathUtility::forceIntegerInRange($begin, 0);
-                $max = ceil($cObj->calc($conf['max']));
+                $max = ceil($cObj->calc($conf['max'] ?? ''));
                 $conf['max'] = MathUtility::forceIntegerInRange($max, 0);
 
                 if ($conf['begin'] && !$conf['max']) {
@@ -1824,11 +1845,11 @@ class tx_table_db {
 
                 // Setting up tablejoins:
             $joinPart = '';
-            if ($conf['join']) {
+            if (isset($conf['join']) && strlen($conf['join'])) {
                 $joinPart = 'JOIN ' . $conf['join'];
-            } elseif ($conf['leftjoin']) {
+            } elseif (isset($conf['leftjoin']) && strlen($conf['leftjoin'])) {
                 $joinPart = 'LEFT OUTER JOIN ' . $conf['leftjoin'];
-            } elseif ($conf['rightjoin']) {
+            } elseif (isset($conf['rightjoin']) && strlen($conf['rightjoin'])) {
                 $joinPart = 'RIGHT OUTER JOIN ' . $conf['rightjoin'];
             }
 
@@ -1884,21 +1905,21 @@ class tx_table_db {
         if (!$table) {
             return false;
         }
-        $listArr = array();
+        $listArr = [];
 
             // Init:
         $query = '';
         $pid_uid_flag = 0;
-        $queryParts = array(
+        $queryParts = [
             'SELECT' => '',
             'FROM' => '',
             'WHERE' => '',
             'GROUPBY' => '',
             'ORDERBY' => '',
             'LIMIT' => ''
-        );
+        ];
 
-        if (trim($conf['uidInList'])) {
+        if (isset($conf['uidInList']) && trim($conf['uidInList'])) {
             if (TYPO3_MODE == 'FE') {
                 $listArr = GeneralUtility::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['uidInList']));
             } else {
@@ -1945,7 +1966,7 @@ class tx_table_db {
 
         if (
             (TYPO3_MODE == 'FE') &&
-            $conf['languageField']
+            !empty($conf['languageField'])
         ) {
             if (
                 $GLOBALS['TSFE']->sys_language_contentOL &&
@@ -1961,7 +1982,10 @@ class tx_table_db {
             $query.=' AND ' . $conf['languageField'] . ' IN (' . $sys_language_content . ')';
         }
 
-        $andWhere = trim($cObj->stdWrap($conf['andWhere'], $conf['andWhere.']));
+        $andWhere = '';
+        if (isset($conf['andWhere']) || isset($conf['andWhere.'])) {
+            $andWhere = trim($cObj->stdWrap($conf['andWhere'] ?? '', $conf['andWhere.'] ?? ''));
+        }
         if ($andWhere) {
             $query .= ' AND ' . $andWhere;
         }
@@ -1984,13 +2008,13 @@ class tx_table_db {
         }
 
             // GROUP BY
-        if (trim($conf['groupBy'])) {
+        if (isset($conf['groupBy']) && trim($conf['groupBy'])) {
             $queryParts['GROUPBY'] = trim($conf['groupBy']);
             $query.=' GROUP BY ' . $queryParts['GROUPBY'];
         }
 
             // ORDER BY
-        if (trim($conf['orderBy'])) {
+        if (isset($conf['orderBy']) && trim($conf['orderBy'])) {
             $queryParts['ORDERBY'] = trim($conf['orderBy']);
             $query.=' ORDER BY ' . $queryParts['ORDERBY'];
         }
