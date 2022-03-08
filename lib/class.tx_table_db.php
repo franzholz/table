@@ -222,6 +222,7 @@ class tx_table_db {
 
             foreach ($row as $field => $value) {
                 if (
+                    isset($value) &&
                     !is_array($value) &&
                     (str_contains($value, '###')) &&
                     (
@@ -759,11 +760,14 @@ class tx_table_db {
         $ctrl = $GLOBALS['TCA'][$table]['ctrl'] ?? '';
         $query = '';
         if (is_array($ctrl)) {
-            if ($ctrl['delete']) {
+            if (!empty($ctrl['delete'])) {
                 $query .=' AND ' . $aliasTable . '.' . $ctrl['delete'] . '=0';
             }
 
-            if (is_array($ctrl['enablecolumns'])) {
+            if (
+                isset($ctrl['enablecolumns']) &&
+                is_array($ctrl['enablecolumns'])
+            ) {
                 if (!empty($ctrl['enablecolumns']['disabled']) && !$show_hidden && empty($ignore_array['disabled'])) {
                     $field = $aliasTable . '.' . $ctrl['enablecolumns']['disabled'];
                     $query .= ' AND ' . $field . '=0';
@@ -942,14 +946,18 @@ class tx_table_db {
 
                             if (strlen($part3pre) && isset($this->tableFieldArray[$part3pre])) {
                                 $tableField = $this->tableFieldArray[$part3pre];
-                                if (is_array($tableField)) {
+                                if (
+                                    is_array($tableField)
+                                ) {
                                     $part3pre = $this->aliasArray[key($tableField)] . $aliasPostfix . '.' . current($tableField);
                                 }
                             }
 
                             if (strlen($part3post) && isset($this->tableFieldArray[$part3post])) {
                                 $tableField = $this->tableFieldArray[$part3post];
-                                if (is_array($tableField)) {
+                                if (
+                                    is_array($tableField)
+                                ) {
                                     $part3post = $this->aliasArray[key($tableField)] .  $aliasPostfix . '.' . current($tableField);
                                 }
                             }
@@ -1073,6 +1081,7 @@ class tx_table_db {
         if (
             $this->getLanguage() &&
             is_array($this->tableFieldArray) &&
+            isset($this->tableFieldArray['sys_language_uid']) &&
             is_array($this->tableFieldArray['sys_language_uid'])
         ) {
             $tableField = $this->tableFieldArray['sys_language_uid'];
@@ -1123,8 +1132,8 @@ class tx_table_db {
         $resultArray = [];
 
         if (
+            !empty($this->aliasArray) &&
             is_array($this->aliasArray) &&
-            count($this->aliasArray) &&
             is_array($this->tableFieldArray)
         ) {
             if ($clause == '*') {

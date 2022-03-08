@@ -1,3 +1,6 @@
+2022-03-08 Franz Holzinger <franz@ttproducts.de>
+    * bugfixes for PHP 8
+
 2022-02-09 Franz Holzinger <franz@ttproducts.de>
     * remove method setTableFieldArray
     * bugfixes for PHP 8
