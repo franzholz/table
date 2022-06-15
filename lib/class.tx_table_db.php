@@ -668,7 +668,7 @@ class tx_table_db {
         $aliasTable = ($this->aliasArray[$table] ?? $table);
         $context = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
 
-        if ($show_hidden == -1 && is_object($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
+        if ($show_hidden == -1 && isset($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
             $show_hidden = $table == 'pages' ? $context->getPropertyFromAspect('visibility', 'includeHiddenPages') : $context->getPropertyFromAspect('visibility', 'includeHiddenContent');
         }
         if ($show_hidden == -1) {
@@ -750,7 +750,10 @@ class tx_table_db {
         $context = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
         $aliasTable = (isset($this->aliasArray[$table]) ? $this->aliasArray[$table] . $aliasPostfix : $table);
 
-        if ($show_hidden==-1 && is_object($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
+        if (
+            $show_hidden == -1 && 
+            isset($GLOBALS['TSFE'])
+        ) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
             $show_hidden = $table == 'pages' ? $context->getPropertyFromAspect('visibility', 'includeHiddenPages') : $context->getPropertyFromAspect('visibility', 'includeHiddenContent');
         }
         if ($show_hidden == -1) {
@@ -781,7 +784,7 @@ class tx_table_db {
                     $query .= ' AND (' . $field . '=0 OR ' . $field . '>' . $GLOBALS['SIM_EXEC_TIME'] . ')';
                 }
                 if (
-                    is_object($GLOBALS['TSFE']) &&
+                    isset($GLOBALS['TSFE']) &&
                     !empty($ctrl['enablecolumns']['fe_group']) &&
                     empty($ignore_array['fe_group'])
                 ) {
@@ -1761,7 +1764,6 @@ class tx_table_db {
                 unset($conf[$property . '.']);
             }
         }
-//         $conf['pidInList'] = trim($cObj->stdWrap($conf['pidInList'], $conf['pidInList.']));
 
             // Handle PDO-style named parameter markers first
         $queryMarkers = $cObj->getQueryMarkers($table, $conf);
@@ -1783,10 +1785,14 @@ class tx_table_db {
             // Handle recursive function for the pidInList
         if (
             isset($conf['recursive']) &&
+            isset($conf['pidInList']) &&
             strcmp($conf['pidInList'], '-1') != 0
         ) {
             $conf['recursive'] = intval($conf['recursive']);
-            if ($conf['recursive'] > 0) {
+            if (
+                isset($GLOBALS['TSFE']) && 
+                $conf['recursive'] > 0
+            ) {
                 $pidList = '';
                 foreach (explode(',', $conf['pidInList']) as $value) {
                     if ($value === 'this') {
@@ -1798,7 +1804,11 @@ class tx_table_db {
             }
         }
 
-        if (!strcmp($conf['pidInList'], '') && (TYPO3_MODE == 'FE')) {
+        if (
+            isset($conf['pidInList']) &&
+            !strcmp($conf['pidInList'], '') && 
+            (TYPO3_MODE == 'FE')
+        ) {
             $conf['pidInList'] = 'this';
         }
 
@@ -1944,6 +1954,7 @@ class tx_table_db {
         }
 
         if (
+            !isset($conf['pidInList']) ||
             !strcmp($conf['pidInList'], '-1')
         ) {
             $pid_uid_flag = -1; // allow to show the records from all pages
