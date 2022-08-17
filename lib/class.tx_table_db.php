@@ -62,9 +62,9 @@ class tx_table_db {
             [
                 'cruser_id' => 'cruser_id',
                 't3ver_oid' => 't3ver_oid',
-                't3ver_id' => 't3ver_id',
-                't3ver_label' => 't3ver_label',
-                'sorting' => 'sorting',
+                't3ver_wsid' => 't3ver_wsid',
+                't3ver_state' => 't3ver_state',
+                't3ver_move_id' => 't3ver_move_id'
             ]; // fields which do not have an entry in TCA
     public $newFieldArray = []; 	// containts the field names which are no default fields (needed for insert)
     public $aliasArray = []; // alias names for tables
