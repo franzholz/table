@@ -1,3 +1,5 @@
+2022-09-21 Franz Holzinger <franz@ttproducts.de>
+    * bugfix: Do not use the uid of a language table. An uid must always come from the original table.
 
 2022-08-17 Franz Holzinger <franz@ttproducts.de>
     * Breaking no.88143: Version-related database field “t3ver_id” removed

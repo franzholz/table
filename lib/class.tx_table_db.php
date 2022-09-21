@@ -568,17 +568,15 @@ class tx_table_db {
             ) {
                 foreach ($this->defaultFieldArray as $field => $realField) {
                     if (
+                        // no uid field for language tables allowed
                         $field != 'uid' &&
                         (
                             !is_array($this->foreignUidArray) ||
                             !in_array($field, $this->foreignUidArray)
                         ) ||
-                        $table == key($this->aliasArray)
+                        $table == $this->getName() 
                     ) {
                         $this->tableFieldArray[$field] = [$table => $realField];
-                    }
-                    if ($field == 'uid') {
-                        // nothing yet
                     }
                 }
             }
