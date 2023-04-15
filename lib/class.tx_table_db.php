@@ -1559,14 +1559,12 @@ class tx_table_db {
             }
         }
 
-        if (!$fallback) {
-            $select_fields =
-                $this->transformSelect(
-                    $select_fields,
-                    $aliasPostfix,
-                    $collateConf
-                );
-        }
+        $select_fields =
+            $this->transformSelect(
+                $select_fields,
+                $aliasPostfix,
+                $collateConf
+            );
         $where_clause =
             $join .
             $this->transformWhere(

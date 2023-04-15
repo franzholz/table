@@ -1,4 +1,7 @@
 2023-04-15 Franz Holzinger <franz@ttproducts.de>
+    * fix #1: fallback must also execute transformSelect
+
+2023-04-15 Franz Holzinger <franz@ttproducts.de>
     * add support for TYPO3 12.3
 
 2022-09-21 Franz Holzinger <franz@ttproducts.de>
