@@ -176,7 +176,3 @@ class tx_table_db_access {
 }
 
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/table/lib/class.tx_table_db_access.php'])	{
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/table/lib/class.tx_table_db_access.php']);
-}
-

@@ -1,3 +1,6 @@
+2023-04-15 Franz Holzinger <franz@ttproducts.de>
+    * add support for TYPO3 12.3
+
 2022-09-21 Franz Holzinger <franz@ttproducts.de>
     * bugfix: Do not use the uid of a language table. An uid must always come from the original table.
 

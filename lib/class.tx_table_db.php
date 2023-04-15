@@ -42,6 +42,7 @@
 */
 
 
+use TYPO3\CMS\Core\Http\ApplicationType;
 use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -1804,8 +1805,8 @@ class tx_table_db {
 
         if (
             isset($conf['pidInList']) &&
-            !strcmp($conf['pidInList'], '') && 
-            (TYPO3_MODE == 'FE')
+            !strcmp($conf['pidInList'], '') &&
+            ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()
         ) {
             $conf['pidInList'] = 'this';
         }
@@ -1937,16 +1938,16 @@ class tx_table_db {
         ];
 
         if (isset($conf['uidInList']) && trim($conf['uidInList'])) {
-            if (TYPO3_MODE == 'FE') {
+            if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
                 $listArr = GeneralUtility::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['uidInList']));
             } else {
                 $listArr = GeneralUtility::intExplode(',', $conf['uidInList']);
             }
 
             if (count($listArr) == 1) {
-                $query.=' AND '.$this->aliasArray[$table] . '.uid=' . intval($listArr[0]);
+                $query .= ' AND ' . $this->aliasArray[$table] . '.uid=' . intval($listArr[0]);
             } else {
-                $query.=' AND '.$this->aliasArray[$table] . '.uid IN (' . implode(',', $GLOBALS['TYPO3_DB']->cleanIntArray($listArr)) . ')';
+                $query .= ' AND ' . $this->aliasArray[$table] . '.uid IN (' . implode(',', $GLOBALS['TYPO3_DB']->cleanIntArray($listArr)) . ')';
             }
             $pid_uid_flag++;
         }
@@ -1959,7 +1960,7 @@ class tx_table_db {
         } else if (
             trim($conf['pidInList'])
         ) {
-            if (TYPO3_MODE == 'FE') {
+            if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
                 $listArr = GeneralUtility::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['pidInList']));
             } else {
                 $listArr = GeneralUtility::intExplode(',', $conf['pidInList']);
@@ -1983,7 +1984,7 @@ class tx_table_db {
         }
 
         if (
-            (TYPO3_MODE == 'FE') &&
+            ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend() &&
             !empty($conf['languageField'])
         ) {
             if (
@@ -2010,7 +2011,7 @@ class tx_table_db {
 
             // enablefields
         if (
-            TYPO3_MODE == 'FE' &&
+            ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend() &&
             $table == 'pages'
         ) {
             $query .= ' ' . $GLOBALS['TSFE']->sys_page->where_hid_del .
