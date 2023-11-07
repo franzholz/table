@@ -515,7 +515,11 @@ class tx_table_db {
                                         $variantArray[] = $search;
                                         $variantArray = array_merge($variantArray, $searchArray);
                                         $value2 =
-                                            str_replace($search, '(' . implode('|', $variantArray) . ')', $value2);
+                                            str_replace(
+                                                $search,
+                                                '(' . implode('|', $variantArray) . ')',
+                                                $value2
+                                            );
                                     }
                                 }
 
@@ -1735,7 +1739,7 @@ class tx_table_db {
     public function getQueryConf (
         $cObj,
         $table,
-        $conf,
+        array $conf,
         $returnQueryArray = false
     )
     {
