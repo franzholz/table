@@ -1394,7 +1394,7 @@ class tx_table_db {
             is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow'])
         ) {
             foreach  ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$extKey][$tablename]['transformRow'] as $classRef) {
-                $hookObj= GeneralUtility::getUserObj($classRef);
+                $hookObj= GeneralUtility::makeInstance($classRef);
                 if (method_exists($hookObj, 'transformRow')) {
                     $hookObj->transformRow($this, $row);
                 }
@@ -1989,7 +1989,7 @@ class tx_table_db {
             !empty($conf['languageField'])
         ) {
             if (
-                $GLOBALS['TSFE']->sys_language_contentOL &&
+                GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('language', 'legacyOverlayType') &&
                 $GLOBALS['TCA'][$table] &&
                 $GLOBALS['TCA'][$table]['ctrl']['languageField'] &&
                 $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']
@@ -1997,7 +1997,7 @@ class tx_table_db {
                     // Sys language content is set to zero/-1 - and it is expected that whatever routine processes the output will OVERLAY the records with localized versions!
                 $sys_language_content = '0,-1';
             } else {
-                $sys_language_content = intval($GLOBALS['TSFE']->sys_language_content);
+                $sys_language_content = intval(GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('language', 'contentId'));
             }
             $query.=' AND ' . $conf['languageField'] . ' IN (' . $sys_language_content . ')';
         }
