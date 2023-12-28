@@ -40,6 +40,7 @@
 * $this->table->init();
 *
 */
+use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Context\Context;
 use JambageCom\Div2007\Api\Frontend;
 use TYPO3\CMS\Core\Http\ApplicationType;
@@ -1832,7 +1833,7 @@ class tx_table_db {
                         $queryParts['GROUPBY']
                     );
                 if ($error = $GLOBALS['TYPO3_DB']->sql_error()) {
-                    $GLOBALS['TT']->setTSlogMessage($error);
+                    GeneralUtility::makeInstance(TimeTracker::class)->setTSlogMessage($error);
                 } else {
                     $row = $GLOBALS['TYPO3_DB']->sql_fetch_row($res);
                     $conf['max'] = str_ireplace('total', $row[0], $conf['max']);
