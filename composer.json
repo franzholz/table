@@ -23,7 +23,7 @@
   ],
   "require": {
     "typo3/cms-core": "^10.4 || ^11.5 || ^12.4",
-    "typo3-ter/div2007": "^1.12"
+    "jambagecom/div2007": "^1.15 || ^2.0"
   },
   "suggest": {
     "friendsoftypo3/typo3db-legacy": "^1"
