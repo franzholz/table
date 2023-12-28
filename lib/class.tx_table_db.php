@@ -40,8 +40,8 @@
 * $this->table->init();
 *
 */
-
-
+use TYPO3\CMS\Core\Context\Context;
+use JambageCom\Div2007\Api\Frontend;
 use TYPO3\CMS\Core\Http\ApplicationType;
 use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -89,7 +89,7 @@ class tx_table_db {
         $tableFieldArray = []
     )
     {
-        $this->aliasArray [$table] = ($tableAlias ? $tableAlias : $table);
+        $this->aliasArray [$table] = ($tableAlias ?: $table);
         if (count($tableFieldArray)) {
             $this->tableFieldArray = $tableFieldArray;
         }
@@ -561,7 +561,7 @@ class tx_table_db {
                 $this->setName($table);
             }
 
-            $tmp = ($tableAlias ? $tableAlias : $table);
+            $tmp = ($tableAlias ?: $table);
             $this->aliasArray[$table] = $tmp;
 
             reset($this->aliasArray);
@@ -669,7 +669,7 @@ class tx_table_db {
             $table = $this->getName();
         }
         $aliasTable = ($this->aliasArray[$table] ?? $table);
-        $context = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
+        $context = GeneralUtility::makeInstance(Context::class);
 
         if ($show_hidden == -1 && isset($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
             $show_hidden = $table == 'pages' ? $context->getPropertyFromAspect('visibility', 'includeHiddenPages') : $context->getPropertyFromAspect('visibility', 'includeHiddenContent');
@@ -750,7 +750,7 @@ class tx_table_db {
         if (!$table) {
             $table = $this->getName();
         }
-        $context = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
+        $context = GeneralUtility::makeInstance(Context::class);
         $aliasTable = (isset($this->aliasArray[$table]) ? $this->aliasArray[$table] . $aliasPostfix : $table);
 
         if (
@@ -1092,7 +1092,7 @@ class tx_table_db {
         ) {
             $tableField = $this->tableFieldArray['sys_language_uid'];
             $api =
-                GeneralUtility::makeInstance(\JambageCom\Div2007\Api\Frontend::class);
+                GeneralUtility::makeInstance(Frontend::class);
             $sys_language_uid = $api->getLanguageId();
 
             $newWhere = ' AND ' . $this->aliasArray[key($tableField)] . '.' . current($this->tableFieldArray['sys_language_uid']) . '=' . intval($sys_language_uid);
@@ -1818,7 +1818,7 @@ class tx_table_db {
             return false;
         }
 
-        $queryParts['SELECT'] = $conf['selectFields'] ? $conf['selectFields'] : '*';
+        $queryParts['SELECT'] = $conf['selectFields'] ?: '*';
 
             // Setting LIMIT:
         if (isset($conf['max']) && strlen($conf['max']) || isset($conf['begin']) && strlen($conf['begin'])) {
