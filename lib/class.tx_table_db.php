@@ -563,9 +563,7 @@ class tx_table_db {
 
             $tmp = ($tableAlias ?: $table);
             $this->aliasArray[$table] = $tmp;
-
-            reset($this->aliasArray);
-            $tmp = key($this->aliasArray);
+            $tmp = array_key_first($this->aliasArray);
 
             if (
                 isset($this->defaultFieldArray) &&
@@ -1344,7 +1342,7 @@ class tx_table_db {
 
         $theName = $this->getName();
         $bTableFound = false;
-        if (!$bJoinFound && (strpos($tables, $theName) != false)) {
+        if (!$bJoinFound && (strpos($tables, (string) $theName) != false)) {
             $bTableFound = true;
         }
 
