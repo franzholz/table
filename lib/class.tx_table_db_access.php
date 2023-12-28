@@ -52,14 +52,14 @@ class tx_table_db_access {
 	 * @param	array		fields to set
 	 * @return	void
 	 */
-	public function prepareFields ($table, $type, $fields)
+	public function prepareFields ($table, $type, $fields): void
 	{
 		$fieldArray = explode (',', $fields);
 		if ($fields == '*') {
 			$this->queryFieldArray[$type][$table->name] = $table->tableFieldArray;
 		} else {
 			foreach ($fieldArray as $key => $field) {
-				$this->queryFieldArray[$type][$table->name][$field] = array($table->name => $field);
+				$this->queryFieldArray[$type][$table->name][$field] = [$table->name => $field];
 			}
 		}
 		$this->tableArray[$table->name] = &$table;
@@ -75,7 +75,7 @@ class tx_table_db_access {
 	 * @param	string		value for the field
 	 * @return	void
 	 */
-	public function prepareWhereFields ($table, $field, $comparator, $value)
+	public function prepareWhereFields ($table, $field, $comparator, $value): void
 	{
 		$tmpArray = $table->tableFieldArray[$field];
 		if ($this->where_clause) {
@@ -93,7 +93,7 @@ class tx_table_db_access {
 	 * @param	string		enable where clause
 	 * @return	void
 	 */
-	public function prepareEnableFields ($table, $value = '')
+	public function prepareEnableFields ($table, $value = ''): void
 	{
 		if ($value) {
 			$this->enableFields = $value;

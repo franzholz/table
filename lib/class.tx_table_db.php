@@ -88,7 +88,7 @@ class tx_table_db {
         $table,
         $tableAlias = '',
         $tableFieldArray = []
-    )
+    ): void
     {
         $this->aliasArray [$table] = ($tableAlias ?: $table);
         if (count($tableFieldArray)) {
@@ -106,7 +106,7 @@ class tx_table_db {
         return $this->name;
     }
 
-    public function setName ($name)
+    public function setName ($name): void
     {
         $this->name = $name;
     }
@@ -116,7 +116,7 @@ class tx_table_db {
         return $this->langname;
     }
 
-    public function setLangName ($name)
+    public function setLangName ($name): void
     {
         $this->langname = $name;
     }
@@ -137,7 +137,7 @@ class tx_table_db {
         return $this->aliasArray[$name];
     }
 
-    public function setConfig ($config)
+    public function setConfig ($config): void
     {
         $this->config = $config;
     }
@@ -158,7 +158,7 @@ class tx_table_db {
         return $this->LLkey;
     }
 
-    public function setLanguage ($LLkey)
+    public function setLanguage ($LLkey): void
     {
         $this->LLkey = $LLkey;
     }
@@ -218,7 +218,7 @@ class tx_table_db {
     public function substituteMarkerArray (
         &$row,
         $excludeFieldArray = []
-    )
+    ): void
     {
         if (is_array($row)) {
 
@@ -257,17 +257,17 @@ class tx_table_db {
         }
     }
 
-    public function initLanguageFile ($filename)
+    public function initLanguageFile ($filename): void
     {
         $this->initFile($filename, $this->langArray);
     }
 
-    public function initMarkerFile ($filename)
+    public function initMarkerFile ($filename): void
     {
         $this->initFile($filename, $this->markerArray, ['###', '###']);
     }
 
-    public function setColumnPrefix ($prefix)
+    public function setColumnPrefix ($prefix): void
     {
         $this->columnPrefix = $prefix;
     }
@@ -277,7 +277,7 @@ class tx_table_db {
         return $this->requiredFieldArray;
     }
 
-    public function setRequiredFieldArray ($fieldArray = [])
+    public function setRequiredFieldArray ($fieldArray = []): void
     {
         $requiredFieldArray = [];
         $defaultFieldArray = $this->getDefaultFieldArray();
@@ -294,7 +294,7 @@ class tx_table_db {
         $this->requiredFieldArray = $requiredFieldArray;
     }
 
-    public function addRequiredFieldArray ($fieldArray = [])
+    public function addRequiredFieldArray ($fieldArray = []): void
     {
         $this->requiredFieldArray = array_merge($this->requiredFieldArray, $fieldArray);
     }
@@ -314,7 +314,7 @@ class tx_table_db {
         return $this->noTCAFieldArray;
     }
 
-    public function setDefaultFieldArray ($defaultFieldArray = [])
+    public function setDefaultFieldArray ($defaultFieldArray = []): void
     {
         if (isset($this->defaultFieldArray) && is_array($this->defaultFieldArray)) {
             foreach ($this->defaultFieldArray as $field => $realField) {
@@ -326,12 +326,12 @@ class tx_table_db {
         $this->defaultFieldArray = $defaultFieldArray;
     }
 
-    public function addDefaultFieldArray ($defaultFieldArray = [])
+    public function addDefaultFieldArray ($defaultFieldArray = []): void
     {
         $this->defaultFieldArray = array_merge($this->defaultFieldArray, $defaultFieldArray);
     }
 
-    public function setNewFieldArray ()
+    public function setNewFieldArray (): void
     {
         $this->newFieldArray = [];
 
@@ -401,7 +401,7 @@ class tx_table_db {
     public function setNoTCAFieldArray (
         $table,
         $fieldArray
-    )
+    ): void
     {
         foreach ($fieldArray as $key => $field) {
             if (
@@ -427,7 +427,7 @@ class tx_table_db {
     public function setForeignUidArray (
         $table,
         $field
-    )
+    ): void
     {
         $this->foreignUidArray[$table] = $field;
     }
@@ -551,7 +551,7 @@ class tx_table_db {
         $table,
         $tableAlias = '',
         $bSetTablename = true
-    )
+    ): void
     {
         if ($table != '') {
             if (
@@ -1080,7 +1080,7 @@ class tx_table_db {
         &$table,
         &$where,
         $bUseJoin = false
-    )
+    ): void
     {
             // set the language
         if (
@@ -1384,7 +1384,7 @@ class tx_table_db {
     public function transformRow (
         &$row,
         $extKey
-    )
+    ): void
     {
         $tablename = $this->getName();
 
@@ -1453,7 +1453,7 @@ class tx_table_db {
     * @param	string		WHERE clause, eg. "uid=1". NOTICE: You must escape values in this argument with $this->fullQuoteStr() yourself!
     * @return	pointer		MySQL result pointer / DBAL object
     */
-    public function exec_DELETEquery ($where)
+    public function exec_DELETEquery ($where): void
     {
         $tablename = $this->getName();
         $GLOBALS['TYPO3_DB']->exec_DELETEquery($tablename, $where);
