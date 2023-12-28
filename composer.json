@@ -40,5 +40,14 @@
     "typo3/cms": {
       "extension-key": "table"
     }
+  },
+  "config": {
+    "allow-plugins": {
+      "typo3/cms-composer-installers": true,
+      "typo3/class-alias-loader": true
+    }
+  },
+  "require-dev": {
+    "ssch/typo3-rector": "^1.5"
   }
 }
