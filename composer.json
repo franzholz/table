@@ -48,6 +48,7 @@
     }
   },
   "require-dev": {
-    "ssch/typo3-rector": "^1.5"
+    "ssch/typo3-rector": "^1.5",
+    "friendsofphp/php-cs-fixer": "^3.43"
   }
 }
