@@ -61,6 +61,7 @@ class tx_table_db
             ]; // TYPO3 default fields
     public $noTCAFieldArray =
             [
+                'sorting' => 'sorting',
                 'cruser_id' => 'cruser_id',
                 't3ver_oid' => 't3ver_oid',
                 't3ver_wsid' => 't3ver_wsid',
@@ -1253,12 +1254,13 @@ class tx_table_db
                     is_array($this->tableFieldArray[$field])
                 ) { // TODO: check this
                     $tableName = key($this->tableFieldArray[$field]);
-                } elseif (isset($this->noTCAFieldArray[$field]) && strlen($this->noTCAFieldArray[$field])) {
+                } elseif (
+                    isset($this->noTCAFieldArray[$field]) && strlen($this->noTCAFieldArray[$field])
+                ) {
                     $tableName = $this->getName();
                 } else {
                     $tableName = '';
                 }
-
                 $fieldTmp = '';
                 if (strlen($tableName)) {
                     $fieldTmp = $this->aliasArray[$tableName] . $aliasPostfix . '.' . $field;

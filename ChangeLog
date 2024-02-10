@@ -1,3 +1,6 @@
+2024-02-18 Franz Holzinger  <franz@ttproducts.de>
+	* The field sorting can be missing in the TCA of a table.
+
 2023-12-28 Franz Holzinger  <franz@ttproducts.de>
 	* use rector to improve the PHP code
 
