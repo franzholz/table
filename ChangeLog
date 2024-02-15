@@ -1,4 +1,7 @@
-2024-02-18 Franz Holzinger  <franz@ttproducts.de>
+2024-02-15 Franz Holzinger  <franz@ttproducts.de>
+	* The field sorting is only availabel if it is in the TCA of a table. Otherwise it must not be used.
+
+2024-02-10 Franz Holzinger  <franz@ttproducts.de>
 	* The field sorting can be missing in the TCA of a table.
 
 2023-12-28 Franz Holzinger  <franz@ttproducts.de>

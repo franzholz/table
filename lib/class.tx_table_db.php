@@ -61,7 +61,6 @@ class tx_table_db
             ]; // TYPO3 default fields
     public $noTCAFieldArray =
             [
-                'sorting' => 'sorting',
                 'cruser_id' => 'cruser_id',
                 't3ver_oid' => 't3ver_oid',
                 't3ver_wsid' => 't3ver_wsid',
