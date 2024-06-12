@@ -1,3 +1,6 @@
+2024-06-12 Franz Holzinger  <franz@ttproducts.de>
+	* fix error: check for empty index in method getLangAlias
+
 2024-02-15 Franz Holzinger  <franz@ttproducts.de>
 	* The field sorting is only availabel if it is in the TCA of a table. Otherwise it must not be used.
 

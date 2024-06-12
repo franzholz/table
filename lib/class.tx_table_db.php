@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 1999-2022 Kasper Skårhøj (kasperYYYY@typo3.com)
+*  (c) 1999-2024 Kasper Skårhøj (kasperYYYY@typo3.com)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -132,7 +132,7 @@ class tx_table_db
     public function getLangAlias()
     {
         $name = $this->getLangName();
-        return $this->aliasArray[$name];
+        return (empty($name) || !isset($this->aliasArray[$name]) ? '' : $this->aliasArray[$name]);
     }
 
     public function setConfig($config): void
@@ -1254,7 +1254,9 @@ class tx_table_db
                 ) { // TODO: check this
                     $tableName = key($this->tableFieldArray[$field]);
                 } elseif (
-                    isset($this->noTCAFieldArray[$field]) && strlen($this->noTCAFieldArray[$field])
+                    isset($this->noTCAFieldArray[$field]) &&
+                    strlen($this->noTCAFieldArray[$field]) ||
+                    isset($this->defaultFieldArray[$field])
                 ) {
                     $tableName = $this->getName();
                 } else {
@@ -1267,7 +1269,9 @@ class tx_table_db
                     $fieldTmp = $field;
                 }
 
-                $resultArray[] = ($function ? $function . '(' : '') . $fieldTmp . ($bracketEndPos ? ')' : '') . (isset($order) && strlen($order) ? ' ' . $order : '');
+                $resultArray[] = ($function ? $function . '(' : '') .
+                    $fieldTmp . ($bracketEndPos ? ')' : '') .
+                    (isset($order) && strlen($order) ? ' ' . $order : '');
             }
             $result = implode(',', $resultArray);
         }
@@ -1293,10 +1297,12 @@ class tx_table_db
         if (count($this->langArray)) {
             // nothing
         } else {
-            foreach ($this->aliasArray as $table => $alias) {
+            if (!empty($this->aliasArray)) {
+                foreach ($this->aliasArray as $table => $alias) {
 
-                if ($table != $this->getName() && !in_array($table, $excludeArray)) {
-                    $resultArray[] = $table . ' ' . $alias;
+                    if ($table != $this->getName() && !in_array($table, $excludeArray)) {
+                        $resultArray[] = $table . ' ' . $alias;
+                    }
                 }
             }
 
@@ -1336,14 +1342,16 @@ class tx_table_db
         $result = '';
         $joinArray = [];
 
-        foreach ($this->aliasArray as $table => $alias) {
-            if ($table != $theName || !$bTableFound) {
-                $resultArray[] = $table . ' ' . $alias . $aliasPostfix;
+        if (!empty($this->aliasArray)) {
+            foreach ($this->aliasArray as $table => $alias) {
+                if ($table != $theName || !$bTableFound) {
+                    $resultArray[] = $table . ' ' . $alias . $aliasPostfix;
 
-                if (isset($this->foreignUidArray[$table]) && $table != $theName) {
-                    $joinArray[] =
-                        $this->aliasArray[$theName] .
-                        '.uid = ' . $this->aliasArray[$table] . $aliasPostfix . '.' . $this->foreignUidArray[$table];
+                    if (isset($this->foreignUidArray[$table]) && $table != $theName) {
+                        $joinArray[] =
+                            $this->aliasArray[$theName] .
+                            '.uid = ' . $this->aliasArray[$table] . $aliasPostfix . '.' . $this->foreignUidArray[$table];
+                    }
                 }
             }
         }
