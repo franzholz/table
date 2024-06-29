@@ -39,16 +39,16 @@
 
 class tx_table_db_access
 {
-    public $queryFieldArray;
-    public $tableArray;
-    public $where_clause;
-    public $enableFields;
+    public $queryFieldArray = [];
+    public $tableArray = null;
+    public $where_clause = '';
+    public $enableFields = false;
 
 
     /**
      * Prepares the execution of a SQL-statement
      *
-     * @param	string		Table(s) from which to select. This is what comes right after "FROM ...". Required value.
+     * @param	object		Table object of class tx_ttproducts_table_base from which to select. This is what comes right after "FROM ...". Required value.
      * @param	string		type of the fields: select, groupBy, orderBy
      * @param	array		fields to set
      * @return	void
@@ -70,7 +70,7 @@ class tx_table_db_access
     /**
      * Prepares the execution of the where clause of the SQL-statement
      *
-     * @param	object		Table object from which to select. This is what comes right after "FROM ...". Required value.
+     * @param	object		Table object of class tx_ttproducts_table_base from which to select. This is what comes right after "FROM ...". Required value.
      * @param	string		type of the fields: select, where, groupBy, orderBy
      * @param	string		coparator like '='
      * @param	string		value for the field
@@ -78,7 +78,7 @@ class tx_table_db_access
      */
     public function prepareWhereFields($table, $field, $comparator, $value): void
     {
-        $tmpArray = $table->tableFieldArray[$field];
+        $tmpArray = $table->tableFieldArray[$field] ?? [];
         if ($this->where_clause) {
             $this->where_clause .= ' AND ';
         }
@@ -90,7 +90,7 @@ class tx_table_db_access
     /**
      * Prepares the execution of the enable fields for the where clause of the SQL-statement
      *
-     * @param	object		Table object from which to select. This is what comes right after "FROM ...". Required value.
+     * @param	object		Table object of class tx_ttproducts_table_base from which to select. This is what comes right after "FROM ...". Required value.
      * @param	string		enable where clause
      * @return	void
      */
@@ -115,7 +115,12 @@ class tx_table_db_access
     {
         $select_fields = '';
         $comma = '';
-        if (!is_array($this->queryFieldArray['select']) || !is_array($this->tableArray)) {
+        if (
+            !isset($this->queryFieldArray['select']) ||
+            !is_array($this->queryFieldArray['select']) ||
+            !isset($this->tableArray) ||
+            !is_array($this->tableArray)
+        ) {
             return null;
         }
 
@@ -134,7 +139,10 @@ class tx_table_db_access
         }
 
         $groupBy = '';
-        if (is_array($this->queryFieldArray['groupBy'])) {
+        if (
+            isset($this->queryFieldArray['groupBy']) &&
+            is_array($this->queryFieldArray['groupBy'])
+        ) {
             $comma = '';
             foreach ($this->queryFieldArray['groupBy'] as $tablename => $fieldArray) {
                 foreach ($fieldArray as $origField => $tableField) {
@@ -145,7 +153,10 @@ class tx_table_db_access
         }
 
         $orderBy = '';
-        if (is_array($this->queryFieldArray['orderBy'])) {
+        if (
+            isset($this->queryFieldArray['orderBy']) &&
+            is_array($this->queryFieldArray['orderBy'])
+        ) {
             $comma = '';
             foreach ($this->queryFieldArray['orderBy'] as $tablename => $fieldArray) {
                 foreach ($fieldArray as $origField => $tableField) {
@@ -163,6 +174,7 @@ class tx_table_db_access
                 $where_clause = $this->where_clause;
             }
         }
+
         if ($this->enableFields) {
             if ($where_clause) {
                 $where_clause .= $this->enableFields;
