@@ -40,13 +40,17 @@
 * $this->table->init();
 *
 */
-use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Context\Context;
-use JambageCom\Div2007\Api\Frontend;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\ApplicationType;
+use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Core\Utility\VersionNumberUtility;
+
+use JambageCom\Div2007\Api\Frontend;
+
 
 class tx_table_db
 {
@@ -1751,8 +1755,24 @@ class tx_table_db
             }
         }
 
-        // Handle PDO-style named parameter markers first
-        $queryMarkers = $cObj->getQueryMarkers($table, $conf);
+        $queryMarkers = [];
+
+        $typo3VersionArray =
+        VersionNumberUtility::convertVersionStringToArray(VersionNumberUtility::getCurrentTypo3Version());
+        $typo3VersionMain = $typo3VersionArray['version_main'];
+
+        if ($typo3VersionMain < 12) {
+            // Handle PDO-style named parameter markers first
+            $queryMarkers = $cObj->getQueryMarkers($table, $conf);
+        } else {
+            // Parse markers and prepare their values
+            $connection =
+                GeneralUtility::makeInstance(
+                    ConnectionPool::class
+                )->getConnectionForTable($table);
+            // Handle PDO-style named parameter markers first
+            $queryMarkers = $cObj->getQueryMarkers($connection, $conf);
+        }
 
         // replace the markers in the non-stdWrap properties
         foreach ($queryMarkers as $marker => $markerValue) {
