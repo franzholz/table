@@ -900,10 +900,10 @@ class tx_table_db
                                 if ($part3prePos !== false) {
                                     $part3preArray = explode('.', $part3pre);
                                     if (
-                                        $part3preArray['0'] == $this->getName() ||
-                                        $part3preArray['0'] == $this->getAlias()
+                                        $part3preArray[0] == $this->getName() ||
+                                        $part3preArray[0] == $this->getAlias()
                                     ) {
-                                        $part3pre = $part3preArray['1'];
+                                        $part3pre = $part3preArray[1];
                                     }
                                 }
                             }
@@ -932,10 +932,10 @@ class tx_table_db
                                 if ($part3postPos !== false) {
                                     $part3postArray = explode('.', $part3post);
                                     if (
-                                        $part3postArray['0'] == $this->getName() ||
-                                        $part3postArray['0'] == $this->getAlias()
+                                        $part3postArray[0] == $this->getName() ||
+                                        $part3postArray[0] == $this->getAlias()
                                     ) {
-                                        $part3post = $part3postArray['1'];
+                                        $part3post = $part3postArray[1];
                                     }
                                 }
                             }
@@ -1363,7 +1363,7 @@ class tx_table_db
         if (count($resultArray) > 1) {
             $result = implode(',', $resultArray);
         } elseif (!$bJoinFound && !$bTableFound) {
-            $result = $resultArray['0'];
+            $result = $resultArray[0];
         }
 
         if (count($joinArray)) {
@@ -1541,7 +1541,7 @@ class tx_table_db
             if ($fallback && !str_contains($joinTables, ' LEFT JOIN ')) {
                 $joinTableArray = GeneralUtility::trimExplode(',', $joinTables);
                 if (count($joinTableArray) == 2) {
-                    $tables = $joinTableArray['0'] . ' LEFT JOIN ' . $joinTableArray['1'] . ' ON ';
+                    $tables = $joinTableArray[0] . ' LEFT JOIN ' . $joinTableArray[1] . ' ON ';
                     $joinFallback = $join;
                     if (($pos = strpos($joinFallback, ' AND')) !== false) {
                         $joinFallback = substr($joinFallback, 0, $pos);
