@@ -1,3 +1,7 @@
+2026-05-05 Franz Holzinger  <franz@ttproducts.de>
+    * cruser_id is removed in TYPO3 12
+    * t3ver_move_id is removed in TYPO3 11
+
 2024-06-12 Franz Holzinger  <franz@ttproducts.de>
 	* fix error: check for empty index in method getLangAlias
 
