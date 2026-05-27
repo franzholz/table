@@ -42,6 +42,7 @@
 */
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\ApplicationType;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Utility\DebugUtility;
@@ -52,8 +53,11 @@ use TYPO3\CMS\Core\Utility\VersionNumberUtility;
 use JambageCom\Div2007\Api\Frontend;
 
 
+
 class tx_table_db
 {
+    protected string $where_hid_del = 'pages.deleted=0';
+
     public $tableFieldArray = []; // array of fields for each table
     public $defaultFieldArray =
             [
@@ -660,8 +664,9 @@ class tx_table_db
         }
         $aliasTable = ($this->aliasArray[$table] ?? $table);
         $context = GeneralUtility::makeInstance(Context::class);
+        $isFrontend = ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend();
 
-        if ($show_hidden == -1 && isset($GLOBALS['TSFE'])) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
+        if ($show_hidden == -1 && $isFrontend) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
             $show_hidden = $table == 'pages' ? $context->getPropertyFromAspect('visibility', 'includeHiddenPages') : $context->getPropertyFromAspect('visibility', 'includeHiddenContent');
         }
         if ($show_hidden == -1) {
@@ -776,7 +781,7 @@ class tx_table_db
                     $query .= ' AND (' . $field . '=0 OR ' . $field . '>' . $GLOBALS['SIM_EXEC_TIME'] . ')';
                 }
                 if (
-                    isset($GLOBALS['TSFE']) &&
+                    ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend() &&
                     !empty($ctrl['enablecolumns']['fe_group']) &&
                     empty($ignore_array['fe_group'])
                 ) {
@@ -2018,8 +2023,10 @@ class tx_table_db
             ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend() &&
             $table == 'pages'
         ) {
-            $query .= ' ' . $GLOBALS['TSFE']->sys_page->where_hid_del .
-                $GLOBALS['TSFE']->sys_page->where_groupAccess;
+            $pageRepository = GeneralUtility::makeInstance(PageRepository::class);
+
+            $query .= ' ' . $this->where_hid_del .
+                $pageRepository->getMultipleGroupsWhereClause('pages.fe_group', 'pages');
         } else {
             $query .= $this->enableFields();
         }
