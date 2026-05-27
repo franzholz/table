@@ -51,6 +51,7 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\VersionNumberUtility;
 
 use JambageCom\Div2007\Api\Frontend;
+use JambageCom\Div2007\Utility\FrontendUtility;
 
 
 
@@ -749,7 +750,7 @@ class tx_table_db
 
         if (
             $show_hidden == -1 &&
-            isset($GLOBALS['TSFE'])
+            ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()
         ) {	// If show_hidden was not set from outside and if TSFE is an object, set it based on showHiddenPage and showHiddenRecords from TSFE
             $show_hidden = $table == 'pages' ? $context->getPropertyFromAspect('visibility', 'includeHiddenPages') : $context->getPropertyFromAspect('visibility', 'includeHiddenContent');
         }
@@ -1799,15 +1800,16 @@ class tx_table_db
         ) {
             $conf['recursive'] = intval($conf['recursive']);
             if (
-                isset($GLOBALS['TSFE']) &&
+                ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend() &&
                 $conf['recursive'] > 0
             ) {
                 $pidList = '';
                 foreach (explode(',', $conf['pidInList']) as $value) {
                     if ($value === 'this') {
-                        $value = $GLOBALS['TSFE']->id;
+                        $pageInformation = $GLOBALS['REQUEST']->getAttribute('frontend.page.information');
+                        $value = $pageInformation->getId();
                     }
-                    $pidList .= $value . ',' . $cObj->getTreeList($value, $conf['recursive']);
+                    $pidList .= $value . ',' . getTreeList($value, (int) $conf['recursive']);
                 }
                 $conf['pidInList'] = trim($pidList, ',');
             }
@@ -1948,7 +1950,9 @@ class tx_table_db
 
         if (isset($conf['uidInList']) && trim($conf['uidInList'])) {
             if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
-                $listArr = GeneralUtility::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['uidInList']));
+                $contentPid = $GLOBALS['TYPO3_REQUEST']->
+                    getAttribute('frontend.page.information')->getContentFromPid();
+                $listArr = GeneralUtility::intExplode(',', str_replace('this', $contentPid, $conf['uidInList']));
             } else {
                 $listArr = GeneralUtility::intExplode(',', $conf['uidInList']);
             }
@@ -1970,7 +1974,9 @@ class tx_table_db
             trim($conf['pidInList'])
         ) {
             if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
-                $listArr = GeneralUtility::intExplode(',', str_replace('this', $GLOBALS['TSFE']->contentPid, $conf['pidInList']));
+                $contentPid = $GLOBALS['TYPO3_REQUEST']->
+                    getAttribute('frontend.page.information')->getContentFromPid();
+                $listArr = GeneralUtility::intExplode(',', str_replace('this', $contentPid, $conf['pidInList']));
             } else {
                 $listArr = GeneralUtility::intExplode(',', $conf['pidInList']);
             }
