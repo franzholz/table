@@ -39,7 +39,7 @@
   "extra": {
     "typo3/cms": {
       "extension-key": "table",
-      "version": "0.15.0",
+      "version": "0.15.1",
       "Package": {
           "providesPackages": {}
       }
