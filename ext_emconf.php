@@ -9,15 +9,15 @@ $EM_CONF[$_EXTKEY] = [
     'title' => 'Table Library',
     'description' => 'This contains a base class which you can use to make your extensions independant from any specific table. And it can be used to make multiple language support with a separate language overlay table or by a CSV file.',
     'category' => 'misc',
-    'version' => '0.14.0',
+    'version' => '0.15.0',
     'state' => 'stable',
     'author' => 'Franz Holzinger',
     'author_email' => 'franz@ttproducts.de',
     'author_company' => 'jambage.com',
     'constraints' => [
         'depends' => [
-            'typo3' => '12.4.0-13.4.99',
-            'div2007' => '2.3.7-2.3.99',
+            'typo3' => '12.4.0-14.3.99',
+            'div2007' => '2.3.7-2.4.99',
         ],
         'conflicts' => [
         ],
