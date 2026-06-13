@@ -1552,9 +1552,8 @@ class tx_table_db
                     }
                     $join = '';
                 }
-            }/* else {
-                $tables = $joinTables;
-            }*/
+            }
+
             if ($tables == '') {
                 $tables = $joinTables;
             }
@@ -1566,6 +1565,7 @@ class tx_table_db
                 $aliasPostfix,
                 $collateConf
             );
+
         $where_clause =
             $join .
             $this->transformWhere(
@@ -1574,6 +1574,7 @@ class tx_table_db
                 $joinFallback,
                 $joinTableArray
             );
+
         $groupBy = $this->transformOrderby($groupBy, $aliasPostfix);
         $orderBy = $this->transformOrderby($orderBy, $aliasPostfix);
 
@@ -1760,12 +1761,13 @@ class tx_table_db
         }
 
         $queryMarkers = [];
-
         $typo3VersionArray =
-        VersionNumberUtility::convertVersionStringToArray(VersionNumberUtility::getCurrentTypo3Version());
+            VersionNumberUtility::convertVersionStringToArray(
+                VersionNumberUtility::getCurrentTypo3Version()
+            );
         $typo3VersionMain = $typo3VersionArray['version_main'];
 
-        if ($typo3VersionMain < 12) {
+        if ($typo3VersionMain < 13) {
             // Handle PDO-style named parameter markers first
             $queryMarkers = $cObj->getQueryMarkers($table, $conf);
         } else {
@@ -1934,6 +1936,12 @@ class tx_table_db
         if (!$table) {
             return false;
         }
+        $typo3VersionArray =
+            VersionNumberUtility::convertVersionStringToArray(
+                VersionNumberUtility::getCurrentTypo3Version()
+            );
+        $typo3VersionMain = $typo3VersionArray['version_main'];
+
         $listArr = [];
 
         // Init:
@@ -1974,8 +1982,12 @@ class tx_table_db
             trim($conf['pidInList'])
         ) {
             if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
-                $contentPid = $GLOBALS['TYPO3_REQUEST']->
-                    getAttribute('frontend.page.information')->getContentFromPid();
+                if ($typo3VersionMain < 13) {
+                    $contentPid = $GLOBALS['TSFE']->contentPid;
+                } else {
+                    $contentPid = $GLOBALS['TYPO3_REQUEST']->
+                        getAttribute('frontend.page.information')->getContentFromPid();
+                }
                 $listArr = GeneralUtility::intExplode(',', str_replace('this', $contentPid, $conf['pidInList']));
             } else {
                 $listArr = GeneralUtility::intExplode(',', $conf['pidInList']);
