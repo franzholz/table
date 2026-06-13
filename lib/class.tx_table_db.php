@@ -1740,6 +1740,11 @@ class tx_table_db
         if ($this->needsInit()) {
             return false;
         }
+        $typo3VersionArray =
+            VersionNumberUtility::convertVersionStringToArray(
+                VersionNumberUtility::getCurrentTypo3Version()
+            );
+        $typo3VersionMain = $typo3VersionArray['version_main'];
         $result = '';
         $error = false;
 
@@ -1761,11 +1766,6 @@ class tx_table_db
         }
 
         $queryMarkers = [];
-        $typo3VersionArray =
-            VersionNumberUtility::convertVersionStringToArray(
-                VersionNumberUtility::getCurrentTypo3Version()
-            );
-        $typo3VersionMain = $typo3VersionArray['version_main'];
 
         if ($typo3VersionMain < 13) {
             // Handle PDO-style named parameter markers first
@@ -1808,8 +1808,13 @@ class tx_table_db
                 $pidList = '';
                 foreach (explode(',', $conf['pidInList']) as $value) {
                     if ($value === 'this') {
-                        $pageInformation = $GLOBALS['REQUEST']->getAttribute('frontend.page.information');
-                        $value = $pageInformation->getId();
+                        if ($typo3VersionMain < 13) {
+                            $value = $GLOBALS['TSFE']->id;
+                        } else {
+                            $pageInformation = $GLOBALS['REQUEST']->
+                                getAttribute('frontend.page.information');
+                            $value = $pageInformation->getId();
+                        }
                     }
                     $pidList .= $value . ',' . getTreeList($value, (int) $conf['recursive']);
                 }
@@ -1833,7 +1838,10 @@ class tx_table_db
         $queryParts['SELECT'] = $conf['selectFields'] ?: '*';
 
         // Setting LIMIT:
-        if (isset($conf['max']) && strlen($conf['max']) || isset($conf['begin']) && strlen($conf['begin'])) {
+        if (
+            isset($conf['max']) && strlen($conf['max']) ||
+            isset($conf['begin']) && strlen($conf['begin'])
+        ) {
             $error = false;
 
             // Finding the total number of records, if used:
