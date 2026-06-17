@@ -1949,7 +1949,6 @@ class tx_table_db
                 VersionNumberUtility::getCurrentTypo3Version()
             );
         $typo3VersionMain = $typo3VersionArray['version_main'];
-
         $listArr = [];
 
         // Init:
@@ -1966,8 +1965,12 @@ class tx_table_db
 
         if (isset($conf['uidInList']) && trim($conf['uidInList'])) {
             if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
-                $contentPid = $GLOBALS['TYPO3_REQUEST']->
-                    getAttribute('frontend.page.information')->getContentFromPid();
+                if ($typo3VersionMain < 13) {
+                    $contentPid = $GLOBALS['TSFE']->contentPid;
+                } else {
+                    $contentPid = $GLOBALS['TYPO3_REQUEST']->
+                        getAttribute('frontend.page.information')->getContentFromPid();
+                }
                 $listArr = GeneralUtility::intExplode(',', str_replace('this', $contentPid, $conf['uidInList']));
             } else {
                 $listArr = GeneralUtility::intExplode(',', $conf['uidInList']);
