@@ -160,7 +160,7 @@ class tx_table_db_access
             $comma = '';
             foreach ($this->queryFieldArray['orderBy'] as $tablename => $fieldArray) {
                 foreach ($fieldArray as $origField => $tableField) {
-                    $groupBy .= $comma . key($tableField) . '.' . current($tableField);
+                    $orderBy .= $comma . key($tableField) . '.' . current($tableField);
                     $comma = ',';
                 }
             }
