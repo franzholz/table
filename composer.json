@@ -22,8 +22,8 @@
     "GPL-2.0-or-later"
   ],
   "require": {
-    "typo3/cms-core": "^12.4 || ^13.4 || ^14",
-    "jambagecom/div2007": "^2.3"
+    "typo3/cms-core": "^13.4 || ^14",
+    "jambagecom/div2007": "^2.4.7"
   },
   "suggest": {
     "friendsoftypo3/typo3db-legacy": "^1"
@@ -39,7 +39,7 @@
   "extra": {
     "typo3/cms": {
       "extension-key": "table",
-      "version": "0.15.2",
+      "version": "1.0.0",
       "Package": {
           "providesPackages": {}
       }

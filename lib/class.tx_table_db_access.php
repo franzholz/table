@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2005-2011 Franz Holzinger <franz@ttproducts.de>
+*  (c) 2005-2026 Franz Holzinger <franz@ttproducts.de>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -36,6 +36,12 @@
  *
  */
 
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\QueryHelper;
+use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
+use Doctrine\DBAL\Result;
+
 
 class tx_table_db_access
 {
@@ -68,21 +74,31 @@ class tx_table_db_access
 
 
     /**
-     * Prepares the execution of the where clause of the SQL-statement
+     * Prepares the execution of the where clause of the SQL statement.
      *
-     * @param	object		Table object of class tx_ttproducts_table_base from which to select. This is what comes right after "FROM ...". Required value.
-     * @param	string		type of the fields: select, where, groupBy, orderBy
-     * @param	string		coparator like '='
-     * @param	string		value for the field
-     * @return	void
+     * @param object $table Table object from which to select (e.g., tx_ttproducts_table_base)
+     * @param string $field The field name to evaluate
+     * @param string $comparator Comparator like '=', '!=', 'LIKE'
+     * @param string $value Value for the field to be securely escaped
+     * @return void
      */
     public function prepareWhereFields($table, $field, $comparator, $value): void
     {
         $tmpArray = $table->tableFieldArray[$field] ?? [];
+
         if ($this->where_clause) {
             $this->where_clause .= ' AND ';
         }
-        $this->where_clause .= key($tmpArray) . '.' . current($tmpArray) . $comparator . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
+
+        // Get the driver-specific database connection for the given table name
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable($table->name);
+
+        // Securely quote the input value to prevent SQL injections (Replaces fullQuoteStr)
+        $quotedValue = $connection->quote((string)$value);
+
+        // Assemble the legacy raw SQL WHERE clause snippet safely
+        $this->where_clause .= key($tmpArray) . '.' . current($tmpArray) . $comparator . $quotedValue;
+
         $this->tableArray[$table->name] = $table;
     }
 
@@ -105,16 +121,16 @@ class tx_table_db_access
 
 
     /**
-     * Creates and executes a SELECT SQL-statement
+     * Creates and executes a SELECT SQL statement based on internal query arrays.
      * Using this function specifically allow us to handle the LIMIT feature independently of DB.
      *
-     * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
-     * @return	pointer		MySQL result pointer / DBAL object
+     *
+     * @param string $where Optional additional raw WHERE clause
+     * @param string|int $limit Optional LIMIT value (e.g., '10' or '0,10')
+     * @return Result|null Doctrine DBAL Result object, or null on configuration failure
      */
-    public function exec_SELECTquery($where = '', $limit = '')
+    public function exec_SELECTquery($where = '', $limit = ''): ?Result
     {
-        $select_fields = '';
-        $comma = '';
         if (
             !isset($this->queryFieldArray['select']) ||
             !is_array($this->queryFieldArray['select']) ||
@@ -124,6 +140,8 @@ class tx_table_db_access
             return null;
         }
 
+        $select_fields = '';
+        $comma = '';
         foreach ($this->queryFieldArray['select'] as $tablename => $fieldArray) {
             foreach ($fieldArray as $origField => $tableField) {
                 $select_fields .= $comma . key($tableField) . '.' . current($tableField);
@@ -160,7 +178,7 @@ class tx_table_db_access
             $comma = '';
             foreach ($this->queryFieldArray['orderBy'] as $tablename => $fieldArray) {
                 foreach ($fieldArray as $origField => $tableField) {
-                    $groupBy .= $comma . key($tableField) . '.' . current($tableField);
+                    $orderBy .= $comma . key($tableField) . '.' . current($tableField);
                     $comma = ',';
                 }
             }
@@ -169,7 +187,7 @@ class tx_table_db_access
         $where_clause = $where;
         if ($this->where_clause) {
             if ($where_clause) {
-                $where_clause .=  ' AND ' . $this->where_clause;
+                $where_clause .= ' AND ' . $this->where_clause;
             } else {
                 $where_clause = $this->where_clause;
             }
@@ -183,7 +201,56 @@ class tx_table_db_access
             }
         }
 
-        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery($select_fields, $from_table, $where_clause, $groupBy, $orderBy, $limit);
-        return $res;
+        // Extract the primary table name to fetch the correct database connection context
+        $mainTable = key($this->tableArray);
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($mainTable);
+
+        // Explicitly configure frontend restrictions if required.
+        // If your internal $this->enableFields already adds them as raw SQL strings,
+        // you might want to call $queryBuilder->getRestrictions()->removeAll(); to prevent duplicates.
+        $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+
+        // Map SELECT fields into individual array arguments
+        $fields = GeneralUtility::trimExplode(',', $select_fields, true);
+        $queryBuilder->select(...$fields);
+
+        // Map dynamic FROM/JOIN string blocks into the statement
+        $queryBuilder->from($from_table);
+
+        // Append the compiled where clause safely using the QueryHelper utility
+        if (trim((string)$where_clause) !== '') {
+            $cleanWhere = QueryHelper::stripLogicalOperatorPrefix($where_clause);
+            $queryBuilder->andWhere($cleanWhere);
+        }
+
+        // Process GROUP BY
+        if (trim((string)$groupBy) !== '') {
+            $groups = GeneralUtility::trimExplode(',', $groupBy, true);
+            foreach ($groups as $groupField) {
+                $queryBuilder->addGroupBy($groupField);
+            }
+        }
+
+        // Process ORDER BY using the core QueryHelper parser
+        if (trim((string)$orderBy) !== '') {
+            foreach (QueryHelper::parseOrderBy($orderBy) as $orderPair) {
+                [$orderField, $direction] = $orderPair;
+                $queryBuilder->addOrderBy($orderField, $direction);
+            }
+        }
+
+        // Process LIMIT / OFFSET configuration
+        if (trim((string)$limit) !== '') {
+            $limitParts = GeneralUtility::intExplode(',', (string)$limit, true);
+            if (count($limitParts) === 2) {
+                $queryBuilder->setFirstResult($limitParts[0]); // OFFSET
+                $queryBuilder->setMaxResults($limitParts[1]);  // LIMIT
+            } else {
+                $queryBuilder->setMaxResults($limitParts[0]);  // LIMIT only
+            }
+        }
+
+        // Execute the query and return the Doctrine DBAL Result object
+        return $queryBuilder->executeQuery();
     }
 }

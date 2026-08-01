@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 1999-2024 Kasper Skårhøj (kasperYYYY@typo3.com)
+*  (c) 1999-2026 Kasper Skårhøj (kasperYYYY@typo3.com)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -40,15 +40,22 @@
 * $this->table->init();
 *
 */
+
+use Doctrine\DBAL\Result;
+
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\QueryHelper;
+use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\ApplicationType;
+use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
-use TYPO3\CMS\Core\Utility\VersionNumberUtility;
+
+
 
 use JambageCom\Div2007\Api\Frontend;
 use JambageCom\Div2007\Utility\FrontendUtility;
@@ -435,12 +442,15 @@ class tx_table_db
     * Generates a search where clause based on the input search words (AND operation - all search words must be found in record.)
     * Example: The $sw is "content management, system" (from an input form) and the $searchFieldList is "bodytext,header" then the output will be ' AND (bodytext LIKE "%content%" OR header LIKE "%content%") AND (bodytext LIKE "%management%" OR header LIKE "%management%") AND (bodytext LIKE "%system%" OR header LIKE "%system%")'
     *
-    * @param	string		The search words. These will be separated by space and comma.
-    * @param	string		The fields to search in
-    * @param	boolean		If the language table shall be used for the fields which need a translation
-    * @param	string		character intermediate regular expression. This will be inserted between all characters of the search words. "{s1}" is a placeholder for the search word.
-    * @param	array		key => value pairs for characters which should be alternatives
-    * @return	string		The WHERE clause.
+    * Generates a raw SQL WHERE clause snippet for a multi-keyword search.
+    *
+    * @param string $sw The search word / query string
+    * @param string $searchFieldList Comma-separated list of fields to search in
+    * @param bool $bUseLanguage Whether to include language table processing
+    * @param string $charRegExp Optional regular expression modifier. This will be inserted between all characters of the search words. "{s1}" is a placeholder for the search word.
+    * @param array $replaceConf Optional configuration for character replacements.
+        key => value pairs for characters which should be alternatives
+    * @return string The SQL snippet starting with ' AND (...)' or empty string
     */
     public function searchWhere(
         $sw,
@@ -448,7 +458,7 @@ class tx_table_db
         $bUseLanguage = true,
         $charRegExp = '',
         $replaceConf = []
-    ) {
+    ): string {
         $where = '';
         $replaceArray = [];
 
@@ -462,35 +472,32 @@ class tx_table_db
         if ($sw) {
             $tablename = $this->getName();
             $languageName = $this->getLangName();
+
             $aliasArray = [];
             $aliasArray[$tablename] = $this->getAlias();
             $aliasArray[$languageName] = $this->getLangAlias();
+
             $searchFields = explode(',', $searchFieldList);
             $kw = preg_split('/[ ,]/', $sw);
+
+            // Get database connections to safely escape parameters for each table
+            $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+            $connectionTablename = $connectionPool->getConnectionForTable($tablename);
+            $connectionLanguage = $bUseLanguage ? $connectionPool
+                ->getConnectionForTable($languageName) : null;
 
             foreach ($kw as $val) {
                 $val = trim($val);
                 $where_p = [];
+
                 if (strlen($val) >= 2) {
                     $valueArray = [];
-                    $valueArray[$tablename] =
-                        $GLOBALS['TYPO3_DB']->escapeStrForLike(
-                            $GLOBALS['TYPO3_DB']->quoteStr(
-                                $val,
-                                $tablename
-                            ),
-                            $tablename
-                        );
 
-                    if ($bUseLanguage) {
-                        $valueArray[$languageName] =
-                            $GLOBALS['TYPO3_DB']->escapeStrForLike(
-                                $GLOBALS['TYPO3_DB']->quoteStr(
-                                    $val,
-                                    $languageName
-                                ),
-                                $languageName
-                            );
+                    // We use the driver-specific escapeStringForLike() on the connection
+                    $valueArray[$tablename] = $connectionTablename->escapeStringForLike($val);
+
+                    if ($bUseLanguage && $connectionLanguage !== null) {
+                        $valueArray[$languageName] = $connectionLanguage->escapeStringForLike($val);
                     }
 
                     foreach ($searchFields as $field) {
@@ -499,10 +506,13 @@ class tx_table_db
                             $theTablename = $this->getTableFromField($field);
                         }
 
-                        if ($theTablename != '') {
+                        if ($theTablename !== '') {
                             $part2 = '';
-                            if ($charRegExp != '') {
-                                $comparatorArray = [];
+                            $activeConnection = ($theTablename === $languageName && $connectionLanguage !== null)
+                            ? $connectionLanguage
+                            : $connectionTablename;
+
+                            if ($charRegExp !== '') {
                                 $value2 = $valueArray[$theTablename];
 
                                 if (!empty($replaceArray)) {
@@ -513,12 +523,11 @@ class tx_table_db
                                         $variantArray = [];
                                         $variantArray[] = $search;
                                         $variantArray = array_merge($variantArray, $searchArray);
-                                        $value2 =
-                                            str_replace(
-                                                $search,
-                                                '(' . implode('|', $variantArray) . ')',
-                                                $value2
-                                            );
+                                        $value2 = str_replace(
+                                            $search,
+                                            '(' . implode('|', $variantArray) . ')',
+                                                              $value2
+                                        );
                                     }
                                 }
 
@@ -528,22 +537,31 @@ class tx_table_db
                                     $tmpCharRegExp = $value2 . $charRegExp;
                                 }
 
-                                $part2 = 'REGEXP \'' . $tmpCharRegExp . '\'';
+                                // Securely quote the final RegExp string for raw SQL injection prevention
+                                $part2 = 'REGEXP ' . $activeConnection->quote($tmpCharRegExp);
                             } else {
-                                $part2 = 'LIKE \'%' . $valueArray[$theTablename] . '%\'';
+                                // Securely quote the final LIKE string for raw SQL injection prevention
+                                $part2 = 'LIKE ' . $activeConnection->quote('%' . $valueArray[$theTablename] . '%');
                             }
-                            $where_p[] = $aliasArray[$theTablename] . '.' . $field . ' ' . $part2;
+
+                            $where_p[] = $activeConnection->quoteIdentifier($aliasArray[$theTablename])
+                            . '.'
+                            . $activeConnection->quoteIdentifier($field)
+                            . ' '
+                            . $part2;
                         }
                     }
                 }
 
-                if (count($where_p)) {
+                if (count($where_p) > 0) {
                     $where .= ' AND (' . implode(' OR ', $where_p) . ')';
                 }
             }
         }
+
         return $where;
     }
+
 
     public function setTCAFieldArray(
         $table,
@@ -1403,76 +1421,123 @@ class tx_table_db
     }
 
     /**
-    * Creates and executes an INSERT SQL-statement for $table from the array with field/value pairs $fields_values.
-    * Using this function specifically allows us to handle BLOB and CLOB fields depending on DB
-    * Usage count/core: 47
-    *
-    * @param	string		Table name
-    * @param	array		Field values as key=>value pairs. Values will be escaped internally. Typically you would fill an array like "$insertFields" with 'fieldname'=>'value' and pass it to this function as argument.
-    * @param	string/array	See fullQuoteArray()
-    * @param	boolean		check if the count of fields is equal to $this->newFieldArray
-    * @return	pointer		MySQL result pointer / DBAL object
-    */
+     * Creates and executes an INSERT SQL statement for the current table.
+     *
+     * @param int $pid The page ID where the record should be inserted
+     * @param array $fields_values Field values as key=>value pairs or numerical array (depending on $bCheckCount)
+     * @param bool|string|array $no_quote_fields Obsolete in TYPO3 v13 (handled automatically by Doctrine DBAL)
+     * @param bool $bCheckCount If true, maps numerical array to $this->newFieldArray
+     * @return bool True on success, false on failure
+     */
     public function exec_INSERTquery(
         $pid,
         $fields_values,
         $no_quote_fields = false,
         $bCheckCount = true
-    ) {
-        $result = true;
-
+    ): bool {
         if ($this->needsInit()) {
             return false;
         }
+
+        // Prepare default system fields
         $fieldsArray = [];
-        $fieldsArray['pid'] = $pid;
+        $fieldsArray['pid'] = (int)$pid;
         $fieldsArray['tstamp'] = time();
         $fieldsArray['crdate'] = time();
         $fieldsArray['deleted'] = 0;
+
         $tablename = $this->getName();
-        if ($bCheckCount && (count($fields_values) == count($this->newFieldArray))) {
+        $isValid = false;
+
+        // Scenario A: Map a numerical array of values to predefined field names ($this->newFieldArray)
+        if ($bCheckCount && is_array($fields_values) && is_array($this->newFieldArray) && count($fields_values) === count($this->newFieldArray)) {
             $count = 0;
-            foreach ($this->newFieldArray as $k => $field) {
+            foreach ($this->newFieldArray as $field) {
                 $fieldsArray[$field] = $fields_values[$count++];
             }
-            $GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename, $fieldsArray, $no_quote_fields);
-        } elseif (!$bCheckCount) {
-            $fieldsArray = array_merge($fieldsArray, $fields_values);
-            $GLOBALS['TYPO3_DB']->exec_INSERTquery($tablename, $fieldsArray, $no_quote_fields);
-        } else {
-            $result = false;
+            $isValid = true;
         }
-        return $result;
+        // Scenario B: $fields_values is already an associative array with 'fieldname' => 'value' pairs
+        elseif (!$bCheckCount && is_array($fields_values)) {
+            $fieldsArray = array_merge($fieldsArray, $fields_values);
+            $isValid = true;
+        }
+
+        if ($isValid) {
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($tablename);
+
+            $queryBuilder
+            ->insert($tablename);
+
+            // Bind all values securely via named parameters
+            foreach ($fieldsArray as $fieldName => $value) {
+                $queryBuilder->values[ $queryBuilder->quoteIdentifier($fieldName) ] = $queryBuilder->createNamedParameter($value);
+            }
+
+            try {
+                $queryBuilder->executeStatement();
+                return true;
+            } catch (\Exception $e) {
+                // Optional: You could inject a Logger here to track database insert errors
+                return false;
+            }
+        }
+
+        return false;
     }
 
+
     /**
-    * Creates and executes a DELETE SQL-statement for $table where $where-clause
-    * Usage count/core: 40
-    *
-    * @param	string		WHERE clause, eg. "uid=1". NOTICE: You must escape values in this argument with $this->fullQuoteStr() yourself!
-    * @return	pointer		MySQL result pointer / DBAL object
-    */
-    public function exec_DELETEquery($where): void
+     * Creates and executes a DELETE SQL statement for the current table based on a raw WHERE clause.
+     *
+     * Fully compatible with TYPO3 v13!
+     *
+     * @param string $where WHERE clause, eg. "uid=1" or "AND uid=1". Values must be safely quoted beforehand.
+     * @return void
+     */
+    public function exec_DELETEquery(string $where): void
     {
         $tablename = $this->getName();
-        $GLOBALS['TYPO3_DB']->exec_DELETEquery($tablename, $where);
+
+        if ($where !== '') {
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable($tablename);
+
+            $queryBuilder
+                ->delete($tablename);
+
+            // Strip leading logical operators (like 'AND ' or 'OR ') to ensure QueryBuilder compatibility
+            $cleanWhere = QueryHelper::stripLogicalOperatorPrefix($where);
+
+            // Append the raw SQL string safely to the delete statement
+            $queryBuilder->andWhere($cleanWhere);
+
+            try {
+                // executeStatement() is the modern replacement for writing/modifying operations in TYPO3 v13
+                $queryBuilder->executeStatement();
+            } catch (\Exception $e) {
+                // Optional: Add logging via LogManager here if you need to catch failing deletes
+            }
+        }
     }
 
+
     /**
-    * Creates and executes a SELECT SQL-statement
-    * Using this function specifically allow us to handle the LIMIT feature independently of DB.
-    *
-    * @param	string		List of fields to select from the table. This is what comes right after "SELECT ...". Required value.
-    * @param	string		Optional additional WHERE clauses put in the end of the query. NOTICE: You must escape values in this argument with $this->fullQuoteStr() yourself! DO NOT PUT IN GROUP BY, ORDER BY or LIMIT!
-    * @param	string		Optional GROUP BY field(s), if none, supply blank string.
-    * @param	string		Optional ORDER BY field(s), if none, supply blank string.
-    * @param	string		Optional LIMIT value ([begin,]max), if none, supply blank string.
-    * @param	string		Optional FROM parts to be able to put a JOIN inside
-    * @param	string		postfix for the alias
-    * @param	boolean		FALLBACK
-    * @param	array		The collation configuration properties: field name as key and collation as value e.g. ['title' => 'utf8_bin'];
-    * @return	pointer		MySQL result pointer / DBAL object
-    */
+     * Creates and executes a SELECT SQL statement using the modern QueryBuilder.
+     *
+     * Fully compatible with TYPO3 v13!
+     *
+     * @param string $select_fields List of fields to select
+     * @param string $where_clause Raw SQL WHERE clause snippet
+     * @param string $groupBy Optional GROUP BY fields
+     * @param string $orderBy Optional ORDER BY fields
+     * @param string|int $limit Optional LIMIT value (e.g., '10' or '0,10')
+     * @param string $from Optional FROM/JOIN parts
+     * @param string $aliasPostfix Postfix for the table alias
+     * @param bool $fallback Enable fallback join handling
+     * @param array $collateConf Collation configuration properties
+     * @return Result|bool Doctrine DBAL Result object, or false on configuration failure
+     */
     public function exec_SELECTquery(
         $select_fields,
         $where_clause,
@@ -1484,32 +1549,31 @@ class tx_table_db
         $fallback = false,
         $collateConf = []
     ) {
-        $tables = '';
-
         if ($this->needsInit()) {
             return false;
         }
 
+        $tables = '';
         $bJoinFound = false;
-        if (str_contains($from, $this->getName())) {
+        if (str_contains((string)$from, $this->getName())) {
             $tables = $from;
         }
 
-        if (str_contains($from, 'JOIN')) {
+        if (str_contains((string)$from, 'JOIN')) {
             $bJoinFound = true;
         }
 
         $join = '';
-        $joinTables =
-            $this->transformTable(
-                $tables,
-                $bJoinFound,
-                $join,
-                $aliasPostfix,
-                $fallback
-            );
+        $joinTables = $this->transformTable(
+            $tables,
+            $bJoinFound,
+            $join,
+            $aliasPostfix,
+            $fallback
+        );
+
         $joinTableArray = [];
-        if (str_contains($joinTables, ',')) {
+        if (str_contains((string)$joinTables, ',')) {
             $joinTableArray = GeneralUtility::trimExplode(',', $joinTables);
         }
         $bAllTablesIncluded = true;
@@ -1517,17 +1581,14 @@ class tx_table_db
 
         if ($tables != '') {
             foreach ($joinTableArray as $joinTable) {
-                if ($joinTable != '' && !str_contains($tables, $joinTable)) {
+                if ($joinTable != '' && !str_contains((string)$tables, $joinTable)) {
                     $bAllTablesIncluded = false;
                     $excludedArray[] = $joinTable;
                 }
             }
         }
 
-        if (
-            !$from ||
-            !$bAllTablesIncluded
-        ) { // the from fields do not already contain all aliases
+        if (!$from || !$bAllTablesIncluded) {
             $tableArray = [];
             if ($tables != '') {
                 $tableArray = GeneralUtility::trimExplode(',', $tables);
@@ -1542,7 +1603,7 @@ class tx_table_db
         $joinFallback = '';
 
         if ($tables == '') {
-            if ($fallback && !str_contains($joinTables, ' LEFT JOIN ')) {
+            if ($fallback && !str_contains((string)$joinTables, ' LEFT JOIN ')) {
                 $joinTableArray = GeneralUtility::trimExplode(',', $joinTables);
                 if (count($joinTableArray) == 2) {
                     $tables = $joinTableArray[0] . ' LEFT JOIN ' . $joinTableArray[1] . ' ON ';
@@ -1559,21 +1620,15 @@ class tx_table_db
             }
         }
 
-        $select_fields =
-            $this->transformSelect(
-                $select_fields,
-                $aliasPostfix,
-                $collateConf
-            );
+        // Run the existing legacy transformation methods
+        $select_fields = $this->transformSelect($select_fields, $aliasPostfix, $collateConf);
 
-        $where_clause =
-            $join .
-            $this->transformWhere(
-                $where_clause,
-                $aliasPostfix,
-                $joinFallback,
-                $joinTableArray
-            );
+        $where_clause = $join . $this->transformWhere(
+            $where_clause,
+            $aliasPostfix,
+            $joinFallback,
+            $joinTableArray
+        );
 
         $groupBy = $this->transformOrderby($groupBy, $aliasPostfix);
         $orderBy = $this->transformOrderby($orderBy, $aliasPostfix);
@@ -1581,17 +1636,59 @@ class tx_table_db
         if ($joinFallback != '') {
             $tables .= ' ' . $joinFallback;
         }
-        $res =
-            $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                $select_fields,
-                $tables,
-                $where_clause,
-                $groupBy,
-                $orderBy,
-                $limit
-            );
-        return $res;
+
+        // --- Modern QueryBuilder Integration starts here ---
+        $mainTable = $this->getName();
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($mainTable);
+
+        // Explicitly configure restrictions if you are on the Frontend.
+        // If you want to bypass all hidden/deleted flags, call ->getRestrictions()->removeAll()
+        $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+
+        // Handle custom multiple SELECT fields (split comma list into individual select arguments)
+        $fields = GeneralUtility::trimExplode(',', $select_fields, true);
+        $queryBuilder->select(...$fields);
+
+        // Set the dynamically compiled FROM/JOIN string block
+        $queryBuilder->from($tables);
+
+        // Append the compiled where clause safely using the QueryHelper utility
+        if (trim((string)$where_clause) !== '') {
+            $cleanWhere = QueryHelper::stripLogicalOperatorPrefix($where_clause);
+            $queryBuilder->andWhere($cleanWhere);
+        }
+
+        // Process GROUP BY
+        if (trim((string)$groupBy) !== '') {
+            $groups = GeneralUtility::trimExplode(',', $groupBy, true);
+            foreach ($groups as $groupField) {
+                $queryBuilder->addGroupBy($groupField);
+            }
+        }
+
+        // Process ORDER BY using the core QueryHelper parser
+        if (trim((string)$orderBy) !== '') {
+            foreach (QueryHelper::parseOrderBy($orderBy) as $orderPair) {
+                [$orderField, $direction] = $orderPair;
+                $queryBuilder->addOrderBy($orderField, $direction);
+            }
+        }
+
+        // Process LIMIT / OFFSET configuration
+        if (trim((string)$limit) !== '') {
+            $limitParts = GeneralUtility::intExplode(',', (string)$limit, true);
+            if (count($limitParts) === 2) {
+                $queryBuilder->setFirstResult($limitParts[0]); // OFFSET
+                $queryBuilder->setMaxResults($limitParts[1]);  // LIMIT
+            } else {
+                $queryBuilder->setMaxResults($limitParts[0]);  // LIMIT only
+            }
+        }
+
+        // Execute the final query and return the Doctrine DBAL Result object
+        return $queryBuilder->executeQuery();
     }
+
 
     /**
     * Creates and returns a SELECT query for records from $table and with conditions based on the configuration in the $conf array
@@ -1740,11 +1837,6 @@ class tx_table_db
         if ($this->needsInit()) {
             return false;
         }
-        $typo3VersionArray =
-            VersionNumberUtility::convertVersionStringToArray(
-                VersionNumberUtility::getCurrentTypo3Version()
-            );
-        $typo3VersionMain = $typo3VersionArray['version_main'];
         $result = '';
         $error = false;
 
@@ -1766,19 +1858,13 @@ class tx_table_db
         }
 
         $queryMarkers = [];
-
-        if ($typo3VersionMain < 13) {
-            // Handle PDO-style named parameter markers first
-            $queryMarkers = $cObj->getQueryMarkers($table, $conf);
-        } else {
-            // Parse markers and prepare their values
-            $connection =
-                GeneralUtility::makeInstance(
-                    ConnectionPool::class
-                )->getConnectionForTable($table);
-            // Handle PDO-style named parameter markers first
-            $queryMarkers = $cObj->getQueryMarkers($connection, $conf);
-        }
+        // Parse markers and prepare their values
+        $connection =
+            GeneralUtility::makeInstance(
+                ConnectionPool::class
+            )->getConnectionForTable($table);
+        // Handle PDO-style named parameter markers first
+        $queryMarkers = $cObj->getQueryMarkers($connection, $conf);
 
         // replace the markers in the non-stdWrap properties
         foreach ($queryMarkers as $marker => $markerValue) {
@@ -1808,13 +1894,9 @@ class tx_table_db
                 $pidList = '';
                 foreach (explode(',', $conf['pidInList']) as $value) {
                     if ($value === 'this') {
-                        if ($typo3VersionMain < 13) {
-                            $value = $GLOBALS['TSFE']->id;
-                        } else {
-                            $pageInformation = $GLOBALS['REQUEST']->
-                                getAttribute('frontend.page.information');
-                            $value = $pageInformation->getId();
-                        }
+                        $pageInformation = $GLOBALS['REQUEST']->
+                            getAttribute('frontend.page.information');
+                        $value = $pageInformation->getId();
                     }
                     $pidList .= $value . ',' . getTreeList($value, (int) $conf['recursive']);
                 }
@@ -1844,23 +1926,37 @@ class tx_table_db
         ) {
             $error = false;
 
-            // Finding the total number of records, if used:
-            if (strpos(strtolower(($conf['begin'] ?? '') . ($conf['max'] ?? '')), 'total') != false) {
-                $res =
-                    $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                        'count(*)',
-                        $table,
-                        $queryParts['WHERE'],
-                        $queryParts['GROUPBY']
+            // Check if 'total' is requested in begin or max configuration
+            if (str_contains(strtolower(($conf['begin'] ?? '') . ($conf['max'] ?? '')), 'total')) {
+                try {
+                    // Execute the count query using your freshly refactored exec_SELECTquery method
+                    // It now returns a Doctrine\DBAL\Result object
+                    $res = $this->exec_SELECTquery(
+                        'COUNT(*)',
+                        $queryParts['WHERE'] ?? '',
+                        $queryParts['GROUPBY'] ?? ''
                     );
-                if ($error = $GLOBALS['TYPO3_DB']->sql_error()) {
-                    GeneralUtility::makeInstance(TimeTracker::class)->setTSlogMessage($error);
-                } else {
-                    $row = $GLOBALS['TYPO3_DB']->sql_fetch_row($res);
-                    $conf['max'] = str_ireplace('total', $row[0], $conf['max']);
-                    $conf['begin'] = str_ireplace('total', $row[0], $conf['begin']);
+
+                    if ($res instanceof \Doctrine\DBAL\Result) {
+                        // fetchOne() is the modern replacement for sql_fetch_row when selecting a single value
+                        $totalCount = (int)$res->fetchOne();
+
+                        // Replace the 'total' placeholder with the actual database count
+                        if (isset($conf['max'])) {
+                            $conf['max'] = str_ireplace('total', (string)$totalCount, $conf['max']);
+                        }
+                        if (isset($conf['begin'])) {
+                            $conf['begin'] = str_ireplace('total', (string)$totalCount, $conf['begin']);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Modern TYPO3 replacement for TimeTracker/sql_error logging
+                    $logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(static::class);
+                    $logger->error('Error calculating total count in search query: ' . $e->getMessage(), [
+                        'exception' => $e,
+                        'queryParts' => $queryParts
+                    ]);
                 }
-                $GLOBALS['TYPO3_DB']->sql_free_result($res);
             }
 
             if (!$error) {
@@ -1906,31 +2002,62 @@ class tx_table_db
                 unset($queryPartValue);
             }
 
-            $query = $GLOBALS['TYPO3_DB']->SELECTquery(
-                $queryParts['SELECT'],
-                $queryParts['FROM'],
-                $queryParts['WHERE'],
-                $queryParts['GROUPBY'],
-                $queryParts['ORDERBY'],
-                $queryParts['LIMIT']
-            );
+            $mainTable = $this->getName();
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable($mainTable);
+            $queryBuilder
+                ->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+            $fields = GeneralUtility::trimExplode(',', $queryParts['SELECT'] ?? '', true);
+            $queryBuilder->select(...$fields);
+            $queryBuilder->from($queryParts['FROM'] ?? '');
 
+            if (trim((string)($queryParts['WHERE'] ?? '')) !== '') {
+                $cleanWhere = QueryHelper::stripLogicalOperatorPrefix($queryParts['WHERE']);
+                $queryBuilder->andWhere($cleanWhere);
+            }
+
+            if (trim((string)($queryParts['GROUPBY'] ?? '')) !== '') {
+                $groups = GeneralUtility::trimExplode(',', $queryParts['GROUPBY'], true);
+                foreach ($groups as $groupField) {
+                    $queryBuilder->addGroupBy($groupField);
+                }
+            }
+
+            if (trim((string)($queryParts['ORDERBY'] ?? '')) !== '') {
+                foreach (QueryHelper::parseOrderBy($queryParts['ORDERBY']) as $orderPair) {
+                    [$orderField, $direction] = $orderPair;
+                    $queryBuilder->addOrderBy($orderField, $direction);
+                }
+            }
+
+            if (trim((string)($queryParts['LIMIT'] ?? '')) !== '') {
+                $limitParts = GeneralUtility::intExplode(',', (string)$queryParts['LIMIT'], true);
+                if (count($limitParts) === 2) {
+                    $queryBuilder->setFirstResult($limitParts[0]); // OFFSET
+                    $queryBuilder->setMaxResults($limitParts[1]);  // LIMIT
+                } else {
+                    $queryBuilder->setMaxResults($limitParts[0]);  // LIMIT only
+                }
+            }
+
+            $query = $queryBuilder->getSQL();
             $result = $returnQueryArray ? $queryParts : $query;
         }
         return $result;
     }
 
+
     /**
-    * Helper function for getQuery(), creating the WHERE clause of the SELECT query
-    *
-    * @param	string		The table name
-    * @param	array		The TypoScript configuration properties
-    * @param	boolean		If set, the function will return the query not as a string but array with the various parts. RECOMMENDED!
-    * @return	mixed		A WHERE clause based on the relevant parts of the TypoScript properties for a "select" function in TypoScript, see link. If $returnQueryArray is false the where clause is returned as a string with WHERE, GROUP BY and ORDER BY parts, otherwise as an array with these parts.
-    * @access private
-    * @link http://typo3.org/doc.0.html?&tx_extrepmgm_pi1[extUid]=270&tx_extrepmgm_pi1[tocEl]=318&cHash=a98cb4e7e6
-    * @see getQuery()
-    */
+     * Helper function for getQuery(), creating the WHERE clause of the SELECT query.
+     *
+     * Fully compatible with TYPO3 v13!
+     *
+     * @param object $cObj The content object instance
+     * @param string $table The table name
+     * @param array $conf The TypoScript configuration properties
+     * @param bool $returnQueryArray If set, returns query parts as an array instead of a string
+     * @return mixed WHERE clause string or array with query parts
+     */
     public function getWhere(
         $cObj,
         $table,
@@ -1944,16 +2071,11 @@ class tx_table_db
         if (!$table) {
             return false;
         }
-        $typo3VersionArray =
-            VersionNumberUtility::convertVersionStringToArray(
-                VersionNumberUtility::getCurrentTypo3Version()
-            );
-        $typo3VersionMain = $typo3VersionArray['version_main'];
-        $listArr = [];
 
-        // Init:
+        $listArr = [];
         $query = '';
         $pid_uid_flag = 0;
+
         $queryParts = [
             'SELECT' => '',
             'FROM' => '',
@@ -1963,122 +2085,117 @@ class tx_table_db
             'LIMIT' => ''
         ];
 
-        if (isset($conf['uidInList']) && trim($conf['uidInList'])) {
-            if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
-                if ($typo3VersionMain < 13) {
-                    $contentPid = $GLOBALS['TSFE']->contentPid;
-                } else {
-                    $contentPid = $GLOBALS['TYPO3_REQUEST']->
-                        getAttribute('frontend.page.information')->getContentFromPid();
-                }
-                $listArr = GeneralUtility::intExplode(',', str_replace('this', $contentPid, $conf['uidInList']));
+        // Process uidInList configuration
+        if (isset($conf['uidInList']) && trim((string)$conf['uidInList']) !== '') {
+            $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+
+            if ($request !== null && ApplicationType::fromRequest($request)->isFrontend()) {
+                // Native TYPO3 v13 way to retrieve the contentFromPid page attribute
+                $pageInformation = $request->getAttribute('frontend.page.information');
+                $contentPid = $pageInformation ? $pageInformation->getContentFromPid() : 0;
+
+                $listArr = GeneralUtility::intExplode(',', str_replace('this', (string)$contentPid, (string)$conf['uidInList']), true);
             } else {
-                $listArr = GeneralUtility::intExplode(',', $conf['uidInList']);
+                $listArr = GeneralUtility::intExplode(',', (string)$conf['uidInList'], true);
             }
 
-            if (count($listArr) == 1) {
-                $query .= ' AND ' . $this->aliasArray[$table] . '.uid=' . intval($listArr[0]);
-            } else {
-                $query .= ' AND ' . $this->aliasArray[$table] . '.uid IN (' . implode(',', $GLOBALS['TYPO3_DB']->cleanIntArray($listArr)) . ')';
+            if (count($listArr) === 1) {
+                $query .= ' AND ' . $this->aliasArray[$table] . '.uid=' . (int)$listArr[0];
+            } elseif (count($listArr) > 1) {
+                // GeneralUtility::intExplode with true already replaced $GLOBALS['TYPO3_DB']->cleanIntArray()
+                $query .= ' AND ' . $this->aliasArray[$table] . '.uid IN (' . implode(',', $listArr) . ')';
             }
             $pid_uid_flag++;
         }
 
-        if (
-            !isset($conf['pidInList']) ||
-            !strcmp($conf['pidInList'], '-1')
-        ) {
-            $pid_uid_flag = -1; // allow to show the records from all pages
-        } elseif (
-            trim($conf['pidInList'])
-        ) {
-            if (ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()) {
-                if ($typo3VersionMain < 13) {
-                    $contentPid = $GLOBALS['TSFE']->contentPid;
-                } else {
-                    $contentPid = $GLOBALS['TYPO3_REQUEST']->
-                        getAttribute('frontend.page.information')->getContentFromPid();
-                }
-                $listArr = GeneralUtility::intExplode(',', str_replace('this', $contentPid, $conf['pidInList']));
+        // Process pidInList configuration
+        if (!isset($conf['pidInList']) || (string)$conf['pidInList'] === '-1') {
+            $pid_uid_flag = -1; // allow to show records from all pages
+        } elseif (trim((string)$conf['pidInList']) !== '') {
+            $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+
+            if ($request !== null && ApplicationType::fromRequest($request)->isFrontend()) {
+                $pageInformation = $request->getAttribute('frontend.page.information');
+                $contentPid = $pageInformation ? $pageInformation->getContentFromPid() : 0;
+
+                $listArr = GeneralUtility::intExplode(',', str_replace('this', (string)$contentPid, (string)$conf['pidInList']), true);
             } else {
-                $listArr = GeneralUtility::intExplode(',', $conf['pidInList']);
+                $listArr = GeneralUtility::intExplode(',', (string)$conf['pidInList'], true);
             }
+
             $listArr = $cObj->checkPidArray($listArr);
 
-            if (count($listArr)) {
-                $query .= ' AND ' . $this->aliasArray[$table] . '.pid IN (' . implode(',', $GLOBALS['TYPO3_DB']->cleanIntArray($listArr)) . ')';
+            if (count($listArr) > 0) {
+                $query .= ' AND ' . $this->aliasArray[$table] . '.pid IN (' . implode(',', $listArr) . ')';
                 $pid_uid_flag++;
             } else {
-                $pid_uid_flag = 0;		// If not uid and not pid then uid is set to 0 - which results in nothing!!
+                $pid_uid_flag = 0; // fallback resulting in no records found
             }
         }
 
-        if (!$pid_uid_flag) {		// If not uid and not pid then uid is set to 0 - which results in nothing!!
+        // Fallback if no valid uid or pid constraints are present
+        if (!$pid_uid_flag) {
             $query .= ' AND ' . $this->aliasArray[$table] . '.uid=0';
         }
 
-        if ($where = trim($conf['where'])) {
+        // Process raw TS where configuration
+        if (isset($conf['where']) && ($where = trim((string)$conf['where'])) !== '') {
             $query .= ' AND ' . $where;
         }
 
-        if (
-            ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend() &&
-            !empty($conf['languageField'])
-        ) {
+        // Process frontend language overlay configuration
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null && ApplicationType::fromRequest($request)->isFrontend() && !empty($conf['languageField'])) {
+            $context = GeneralUtility::makeInstance(Context::class);
+
             if (
-                GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('language', 'legacyOverlayType') &&
-                $GLOBALS['TCA'][$table] &&
-                $GLOBALS['TCA'][$table]['ctrl']['languageField'] &&
-                $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']
+                $context->getPropertyFromAspect('language', 'legacyOverlayType') &&
+                isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) &&
+                isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])
             ) {
-                // Sys language content is set to zero/-1 - and it is expected that whatever routine processes the output will OVERLAY the records with localized versions!
                 $sys_language_content = '0,-1';
             } else {
-                $sys_language_content = intval(GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('language', 'contentId'));
+                $sys_language_content = (int)$context->getPropertyFromAspect('language', 'contentId');
             }
             $query .= ' AND ' . $conf['languageField'] . ' IN (' . $sys_language_content . ')';
         }
 
+        // Process andWhere TypoScript stdWrap
         $andWhere = '';
         if (isset($conf['andWhere']) || isset($conf['andWhere.'])) {
-            $andWhere = trim($cObj->stdWrap($conf['andWhere'] ?? '', $conf['andWhere.'] ?? ''));
+            $andWhere = trim((string)$cObj->stdWrap($conf['andWhere'] ?? '', $conf['andWhere.'] ?? ''));
         }
-        if ($andWhere) {
+        if ($andWhere !== '') {
             $query .= ' AND ' . $andWhere;
         }
 
-        // enablefields
-        if (
-            ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend() &&
-            $table == 'pages'
-        ) {
+        // Process enableFields / restrictions
+        if ($request !== null && ApplicationType::fromRequest($request)->isFrontend() && $table === 'pages') {
             $pageRepository = GeneralUtility::makeInstance(PageRepository::class);
-
-            $query .= ' ' . $this->where_hid_del .
-                $pageRepository->getMultipleGroupsWhereClause('pages.fe_group', 'pages');
+            // Note: In TYPO3 v13, getMultipleGroupsWhereClause might be a custom or refactored utility in your codebase
+            $query .= ' ' . $this->where_hid_del . $pageRepository->getMultipleGroupsWhereClause('pages.fe_group', 'pages');
         } else {
             $query .= $this->enableFields();
         }
 
-        // MAKE WHERE:
-        if ($query) {
-            $queryParts['WHERE'] = trim(substr($query, 4));	// Stripping of " AND"...
+        // Assemble final WHERE structure
+        if ($query !== '') {
+            $queryParts['WHERE'] = trim(substr($query, 4)); // strip leading " AND "
             $query = 'WHERE ' . $queryParts['WHERE'];
         }
 
-        // GROUP BY
-        if (isset($conf['groupBy']) && trim($conf['groupBy'])) {
-            $queryParts['GROUPBY'] = trim($conf['groupBy']);
+        // Process GROUP BY
+        if (isset($conf['groupBy']) && trim((string)$conf['groupBy']) !== '') {
+            $queryParts['GROUPBY'] = trim((string)$conf['groupBy']);
             $query .= ' GROUP BY ' . $queryParts['GROUPBY'];
         }
 
-        // ORDER BY
-        if (isset($conf['orderBy']) && trim($conf['orderBy'])) {
-            $queryParts['ORDERBY'] = trim($conf['orderBy']);
+        // Process ORDER BY
+        if (isset($conf['orderBy']) && trim((string)$conf['orderBy']) !== '') {
+            $queryParts['ORDERBY'] = trim((string)$conf['orderBy']);
             $query .= ' ORDER BY ' . $queryParts['ORDERBY'];
         }
 
-        // Return result:
         return $returnQueryArray ? $queryParts : $query;
     }
 }

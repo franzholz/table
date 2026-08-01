@@ -1,3 +1,7 @@
+2026-08-01 Franz Holzinger  <franz@ttproducts.de>
+	* use Doctrine instead of $GLOBALS['TYPO3_DB']
+	* TYPO3 13 is the minimum requirement
+
 2026-05-27 Franz Holzinger  <franz@ttproducts.de>
     * tsfe is removed in TYPO3 14
     * sys_page ==> $pageRepository from PageRepository
