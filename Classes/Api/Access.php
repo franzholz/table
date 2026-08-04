@@ -1,4 +1,7 @@
 <?php
+
+namespace JambageCom\Table\Api;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -43,7 +46,7 @@ use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use Doctrine\DBAL\Result;
 
 
-class tx_table_db_access
+class Access
 {
     public $queryFieldArray = [];
     public $tableArray = null;

@@ -1,4 +1,7 @@
 <?php
+
+namespace JambageCom\Table\Api;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -56,13 +59,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 
-
 use JambageCom\Div2007\Api\Frontend;
 use JambageCom\Div2007\Utility\FrontendUtility;
 
 
-
-class tx_table_db
+class TableDb
 {
     protected string $where_hid_del = 'pages.deleted=0';
 
@@ -95,6 +96,11 @@ class tx_table_db
     public $config = []; // configuration array
     public $bNeedsInit = true;
 
+
+    // TYPO3 v14 injiziert den passenden Logger automatisch via DI
+    public function __construct(
+        protected readonly LoggerInterface $logger
+    ) {}
 
     // use setTCAFieldArray instead of this
     public function init(
@@ -1467,7 +1473,7 @@ class tx_table_db
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($tablename);
 
             $queryBuilder
-            ->insert($tablename);
+                ->insert($tablename);
 
             // Bind all values securely via named parameters
             foreach ($fieldsArray as $fieldName => $value) {
@@ -1478,7 +1484,11 @@ class tx_table_db
                 $queryBuilder->executeStatement();
                 return true;
             } catch (\Exception $e) {
-                // Optional: You could inject a Logger here to track database insert errors
+                $this->logger->error('Error INSERT query: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'SQL' => $queryBuilder->getSQL()
+                ]);
+
                 return false;
             }
         }
@@ -1517,6 +1527,10 @@ class tx_table_db
                 $queryBuilder->executeStatement();
             } catch (\Exception $e) {
                 // Optional: Add logging via LogManager here if you need to catch failing deletes
+                $this->logger->error('Error DELETE query: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'SQL' => $queryBuilder->getSQL()
+                ]);
             }
         }
     }
@@ -1951,10 +1965,9 @@ class tx_table_db
                     }
                 } catch (\Exception $e) {
                     // Modern TYPO3 replacement for TimeTracker/sql_error logging
-                    $logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(static::class);
-                    $logger->error('Error calculating total count in search query: ' . $e->getMessage(), [
+                    $this->logger->error('Error calculating total count in search query: ' . $e->getMessage(), [
                         'exception' => $e,
-                        'queryParts' => $queryParts
+                        'queryParts' => $queryParts ?? []
                     ]);
                 }
             }
