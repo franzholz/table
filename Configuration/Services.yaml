@@ -1,0 +1,9 @@
+services:
+  _defaults:
+    autowire: true      # Verknüpft deine Konstruktor-Parameter (z.B. den Logger) automatisch
+    autoconfigure: true # Registriert eventuelle Commands, Repositories oder EventListener im Core
+    public: false       # Hält die Services aus Performancegründen privat
+
+  # Das offizielle Namespacing der Table-Library-Extension für die Klassen-Ressourcen
+  JambageCom\Table\:
+    resource: '../Classes/*'
