@@ -29,9 +29,9 @@
     "friendsoftypo3/typo3db-legacy": "^1"
   },
   "autoload": {
-    "classmap": [
-      "lib"
-    ]
+    "psr-4": {
+      "JambageCom\\Table\\": "Classes"
+    }
   },
   "replace": {
     "typo3-ter/table": "self.version"
