@@ -44,7 +44,12 @@ namespace JambageCom\Table\Api;
 *
 */
 
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\DBAL\Result;
+
+use InvalidArgumentException;
+
+use Psr\Log\LoggerInterface;
 
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -108,7 +113,7 @@ class TableDb
         $tableAlias = '',
         $tableFieldArray = []
     ): void {
-        $this->aliasArray [$table] = ($tableAlias ?: $table);
+        $this->aliasArray[$table] = ($tableAlias ?: $table);
         if (count($tableFieldArray)) {
             $this->tableFieldArray = $tableFieldArray;
         }
@@ -143,6 +148,7 @@ class TableDb
     {
         $result = '';
         $name = $this->getName();
+
         if (isset($this->aliasArray[$name])) {
             $result = $this->aliasArray[$name];
         }
@@ -583,7 +589,7 @@ class TableDb
                 $this->setName($table);
             }
 
-            $tmp = ($tableAlias ?: $table);
+            $tmp = ($tableAlias ?? $table);
             $this->aliasArray[$table] = $tmp;
             $tmp = array_key_first($this->aliasArray);
 
@@ -1229,6 +1235,20 @@ class TableDb
         return $result;
     }
 
+    protected function checkField(string $title, string $fieldExpression): void
+    {
+        if (str_starts_with($fieldExpression, '.')) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Table Library: Invalid field expression "%s" for "%s". Missing table alias prefix.',
+                    $fieldExpression,
+                    $title
+                ),
+                1789466120 // Unique Unix timestamp used as TYPO3 error code
+            );
+        }
+    }
+
     /**
     * Returns the SQL orderby clause with the correct table alias names
     *
@@ -1247,10 +1267,12 @@ class TableDb
         if ($clause == '') {
             // nothing
         } else {
+            $resultArray = [];
             $parts = GeneralUtility::trimExplode(',', $clause);
             $order = '';
 
             foreach ($parts as $k => $fieldExpression) {
+                $this->checkField('order by or group by', $fieldExpression);
                 $spaceStartPos = strpos($fieldExpression, ' ');
                 $bracketStartPos = strpos($fieldExpression, '(');
                 $bracketEndPos = strpos($fieldExpression, ')');
@@ -1294,11 +1316,20 @@ class TableDb
                 } else {
                     $tableName = '';
                 }
-                $fieldTmp = '';
-                if (strlen($tableName)) {
-                    $fieldTmp = $this->aliasArray[$tableName] . $aliasPostfix . '.' . $field;
+
+                // 1. Resolve the alias from the array if it exists and is not empty
+                $baseAlias = !empty($this->aliasArray[$tableName]) ? $this->aliasArray[$tableName] : '';
+
+                // 2. Append postfix only if a valid base alias was found
+                if (!empty($baseAlias) && !empty($aliasPostfix)) {
+                    $baseAlias .= $aliasPostfix;
+                }
+
+                // 3. Build the expression: use table prefix only if $baseAlias is not empty
+                if (!empty($baseAlias)) {
+                    $fieldTmp = $baseAlias . '.' . $field; // Result: "product.subtitle"
                 } else {
-                    $fieldTmp = $field;
+                    $fieldTmp = $field; // Result: "subtitle" (No table prefix)
                 }
 
                 $resultArray[] = ($function ? $function . '(' : '') .
@@ -1397,6 +1428,7 @@ class TableDb
         if (count($joinArray)) {
             $join = implode(' AND ', $joinArray) . ' AND ';
         }
+
         return $result;
     }
 
@@ -1562,11 +1594,15 @@ class TableDb
         $aliasPostfix = '',
         $fallback = false,
         $collateConf = []
-    ) {
+    ): Result|false {
         if ($this->needsInit()) {
             return false;
         }
 
+        $this->checkField('select', $select_fields);
+        $this->checkField('where', $where_clause);
+        $this->checkField('group by', $groupBy);
+        $this->checkField('order by', $orderBy);
         $tables = '';
         $bJoinFound = false;
         if (str_contains((string)$from, $this->getName())) {
@@ -1655,52 +1691,91 @@ class TableDb
         $mainTable = $this->getName();
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($mainTable);
 
-        // Explicitly configure restrictions if you are on the Frontend.
-        // If you want to bypass all hidden/deleted flags, call ->getRestrictions()->removeAll()
+        // Explicitly configure restrictions if you are on the Frontend
         $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
 
         // Handle custom multiple SELECT fields (split comma list into individual select arguments)
         $fields = GeneralUtility::trimExplode(',', $select_fields, true);
         $queryBuilder->select(...$fields);
 
-        // Set the dynamically compiled FROM/JOIN string block
-        $queryBuilder->from($tables);
+        $rawTables = explode(',', $tables);
+        $isFirst = true;
+        $firstAlias = '';
+        $firstTable = '';
 
-        // Append the compiled where clause safely using the QueryHelper utility
-        if (trim((string)$where_clause) !== '') {
-            $cleanWhere = QueryHelper::stripLogicalOperatorPrefix($where_clause);
-            $queryBuilder->andWhere($cleanWhere);
-        }
+        foreach ($rawTables as $tableDefinition) {
+            $parts = preg_split('/\s+/', trim($tableDefinition));
 
-        // Process GROUP BY
-        if (trim((string)$groupBy) !== '') {
-            $groups = GeneralUtility::trimExplode(',', $groupBy, true);
-            foreach ($groups as $groupField) {
-                $queryBuilder->addGroupBy($groupField);
+            if (empty($parts) || trim($parts[0]) === '') {
+                continue;
             }
-        }
 
-        // Process ORDER BY using the core QueryHelper parser
-        if (trim((string)$orderBy) !== '') {
-            foreach (QueryHelper::parseOrderBy($orderBy) as $orderPair) {
-                [$orderField, $direction] = $orderPair;
-                $queryBuilder->addOrderBy($orderField, $direction);
-            }
-        }
+            $tableName = $parts[0];
+            $alias = $parts[1] ?? $tableName;
 
-        // Process LIMIT / OFFSET configuration
-        if (trim((string)$limit) !== '') {
-            $limitParts = GeneralUtility::intExplode(',', (string)$limit, true);
-            if (count($limitParts) === 2) {
-                $queryBuilder->setFirstResult($limitParts[0]); // OFFSET
-                $queryBuilder->setMaxResults($limitParts[1]);  // LIMIT
+            if ($isFirst) {
+                $queryBuilder->from($tableName, $alias);
+                $firstTable = $tableName;
+                $firstAlias = $alias;
+                $isFirst = false;
             } else {
-                $queryBuilder->setMaxResults($limitParts[0]);  // LIMIT only
+                $queryBuilder->leftJoin($firstAlias, $tableName, $alias, '1 = 1');
             }
         }
 
-        // Execute the final query and return the Doctrine DBAL Result object
-        return $queryBuilder->executeQuery();
+        // Select all columns if no specific fields were specified
+        if (empty($fields) || $select_fields === '*') {
+            $queryBuilder->select($firstAlias . '.*');
+        }
+
+        // ==========================================
+        // FIX: Inject SQL conditions into Doctrine QueryBuilder
+        // ==========================================
+
+        // 1. Inject the WHERE clause snippet
+        if (!empty(trim($where_clause))) {
+            // Since this is a legacy transformed raw SQL string,
+            // wrap it directly using the Doctrine Expression Builder
+            $queryBuilder->where($queryBuilder->expr()->and($where_clause));
+        }
+
+        // 2. Inject the ORDER BY clause snippet
+        if (!empty(trim($orderBy))) {
+            // Doctrine expects fields individually. If multiple fields are passed, split them.
+            $orderParts = GeneralUtility::trimExplode(',', $orderBy, true);
+            foreach ($orderParts as $orderPart) {
+                if (preg_match('/(.*)\s+(ASC|DESC)$/i', $orderPart, $matches)) {
+                    $queryBuilder->addOrderBy(trim($matches[1]), strtoupper($matches[2]));
+                } else {
+                    $queryBuilder->addOrderBy(trim($orderPart));
+                }
+            }
+        }
+
+        // 3. Inject the GROUP BY clause snippet
+        if (!empty(trim($groupBy))) {
+            $groupParts = GeneralUtility::trimExplode(',', $groupBy, true);
+            $queryBuilder->groupBy(...$groupParts);
+        }
+
+        // 4. Inject the LIMIT clause snippet
+        if (!empty($limit)) {
+            if (str_contains((string)$limit, ',')) {
+                $limitParts = GeneralUtility::trimExplode(',', $limit, true);
+                $queryBuilder->setFirstResult((int)$limitParts[0]);  // Offset
+                $queryBuilder->setMaxResults((int)$limitParts[1]);   // Count
+            } else {
+                $queryBuilder->setMaxResults((int)$limit);
+            }
+        }
+
+        try {
+            // Execute the final query and return the Doctrine DBAL Result object
+            return $queryBuilder->executeQuery();
+        } catch (DbalException $e) {
+            // Fallback: Return false if the database query fails or encounters syntax errors
+            return false;
+        }
     }
 
 

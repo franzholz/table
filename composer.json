@@ -25,9 +25,6 @@
     "typo3/cms-core": "^13.4 || ^14",
     "jambagecom/div2007": "^2.4.7"
   },
-  "suggest": {
-    "friendsoftypo3/typo3db-legacy": "^1"
-  },
   "autoload": {
     "psr-4": {
       "JambageCom\\Table\\": "Classes"

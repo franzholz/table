@@ -7,3 +7,8 @@ services:
   # Das offizielle Namespacing der Table-Library-Extension für die Klassen-Ressourcen
   JambageCom\Table\:
     resource: '../Classes/*'
+
+  # Register TableDb as non-shared (prototype scope) to get a fresh instance every time
+  JambageCom\Table\Api\TableDb:
+    shared: false
+
