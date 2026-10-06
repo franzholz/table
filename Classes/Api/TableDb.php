@@ -70,8 +70,6 @@ use JambageCom\Div2007\Utility\FrontendUtility;
 
 class TableDb
 {
-    protected string $where_hid_del = 'pages.deleted=0';
-
     public $tableFieldArray = []; // array of fields for each table
     public $defaultFieldArray =
             [
@@ -1571,7 +1569,7 @@ class TableDb
     /**
      * Creates and executes a SELECT SQL statement using the modern QueryBuilder.
      *
-     * Fully compatible with TYPO3 v13!
+     * Fully compatible with TYPO3 v13 and v14!
      *
      * @param string $select_fields List of fields to select
      * @param string $where_clause Raw SQL WHERE clause snippet
@@ -1599,10 +1597,25 @@ class TableDb
             return false;
         }
 
+        debug('B');
+
+        // ==========================================
+        // STRATEGISCHES INITIAL-DEBUGGING
+        // ==========================================
+        debug([
+            'SELECT' => $select_fields,
+            'WHERE' => $where_clause,
+            'FROM' => $from,
+            'ORDERBY' => $orderBy,
+            'GROUPBY' => $groupBy,
+            'LIMIT' => $limit
+        ], 'TableDb: Rohe Eingangsparameter aus der ListView');
+
         $this->checkField('select', $select_fields);
         $this->checkField('where', $where_clause);
         $this->checkField('group by', $groupBy);
         $this->checkField('order by', $orderBy);
+
         $tables = '';
         $bJoinFound = false;
         if (str_contains((string)$from, $this->getName())) {
@@ -1687,31 +1700,82 @@ class TableDb
             $tables .= ' ' . $joinFallback;
         }
 
-        // --- Modern QueryBuilder Integration starts here ---
+        // --- Integration des modernen QueryBuilders ---
         $mainTable = $this->getName();
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($mainTable);
 
-        // Explicitly configure restrictions if you are on the Frontend
+        $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+        $queryBuilder = $connectionPool->getConnectionForTable($mainTable)->createQueryBuilder();
+
+        // Restriktionen konfigurieren
         $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
 
-        // Handle custom multiple SELECT fields (split comma list into individual select arguments)
+        // Check for DISTINCT keyword in the legacy select string
+        $isDistinct = false;
+        if (preg_match('/^\s*DISTINCT\s+/i', $select_fields)) {
+            $isDistinct = true;
+            $select_fields = preg_replace('/^\s*DISTINCT\s+/i', '', $select_fields);
+        }
+
+        // Handle custom multiple SELECT fields
         $fields = GeneralUtility::trimExplode(',', $select_fields, true);
-        $queryBuilder->select(...$fields);
+
+        // DEBUG: Wir schauen uns an, was die ListView als $tables uebergibt!
+        debug($tables, 'TableDb: Der komplette $tables-String vor dem Split in Teil 1');
 
         $rawTables = explode(',', $tables);
         $isFirst = true;
         $firstAlias = '';
         $firstTable = '';
 
+                $joinedAliases = [];
         foreach ($rawTables as $tableDefinition) {
-            $parts = preg_split('/\s+/', trim($tableDefinition));
 
-            if (empty($parts) || trim($parts[0]) === '') {
+            // Fängt leere Einträge ab, bevor preg_split läuft
+            if (trim((string)$tableDefinition) === '') {
+                continue;
+            }
+
+            $parts = preg_split('/\s+/', trim((string)$tableDefinition));
+
+            // FIX: Prüft das erste Element des Arrays ($parts[0]), statt das gesamte Array an trim() zu übergeben
+            if (empty($parts) || !isset($parts[0]) || trim((string)$parts[0]) === '') {
                 continue;
             }
 
             $tableName = $parts[0];
             $alias = $parts[1] ?? $tableName;
+
+            $tableName = str_replace('`', '', $tableName);
+            $alias = str_replace('`', '', $alias);
+
+            // =========================================================================
+            // DYNAMISCHES & ALLGEMEINES TABELLEN-MAPPING (Ohne Hardcoding)
+            // =========================================================================
+            $currentMainTable = $this->getName(); // z.B. 'tt_products'
+
+            if ($tableName !== $currentMainTable && !empty($tableName)) {
+                $prefix = 'tt_products_';
+                if (!str_starts_with($tableName, $prefix) && str_starts_with($currentMainTable, $prefix)) {
+                    $potentialRealTable = $prefix . $tableName;
+                    $tableName = $potentialRealTable;
+                }
+            }
+
+            // DEBUG: Wir analysieren jede Tabelle, die Teil 1 an den QueryBuilder uebergibt
+            debug([
+                'tableName' => $tableName,
+                'alias' => $alias,
+                'isFirst' => $isFirst,
+                'already_in_joined' => in_array($alias, $joinedAliases, true)
+            ], 'TableDb: Schleifendurchlauf in Teil 1 fuer "' . $alias . '"');
+
+            // FIX: Wenn das Alias bereits registriert wurde oder Müll ist, verhindern wir hier den Doctrine-Crash!
+            if (in_array($alias, $joinedAliases, true) || strtoupper($tableName) === 'ON' || strtoupper($tableName) === 'LEFT') {
+                debug($alias, 'TableDb: WARNUNG - Alias doppelt oder SQL-Fragment in Teil 1 gefunden! Überspringe leftJoin.');
+                continue;
+            }
+
+            $joinedAliases[] = $alias;
 
             if ($isFirst) {
                 $queryBuilder->from($tableName, $alias);
@@ -1719,63 +1783,183 @@ class TableDb
                 $firstAlias = $alias;
                 $isFirst = false;
             } else {
-                $queryBuilder->leftJoin($firstAlias, $tableName, $alias, '1 = 1');
-            }
-        }
-
-        // Select all columns if no specific fields were specified
-        if (empty($fields) || $select_fields === '*') {
-            $queryBuilder->select($firstAlias . '.*');
-        }
-
-        // ==========================================
-        // FIX: Inject SQL conditions into Doctrine QueryBuilder
-        // ==========================================
-
-        // 1. Inject the WHERE clause snippet
-        if (!empty(trim($where_clause))) {
-            // Since this is a legacy transformed raw SQL string,
-            // wrap it directly using the Doctrine Expression Builder
-            $queryBuilder->where($queryBuilder->expr()->and($where_clause));
-        }
-
-        // 2. Inject the ORDER BY clause snippet
-        if (!empty(trim($orderBy))) {
-            // Doctrine expects fields individually. If multiple fields are passed, split them.
-            $orderParts = GeneralUtility::trimExplode(',', $orderBy, true);
-            foreach ($orderParts as $orderPart) {
-                if (preg_match('/(.*)\s+(ASC|DESC)$/i', $orderPart, $matches)) {
-                    $queryBuilder->addOrderBy(trim($matches[1]), strtoupper($matches[2]));
-                } else {
-                    $queryBuilder->addOrderBy(trim($orderPart));
+                if ($alias !== $firstAlias) {
+                    $queryBuilder->leftJoin($firstAlias, $tableName, $alias, '1 = 1');
                 }
             }
         }
 
-        // 3. Inject the GROUP BY clause snippet
-        if (!empty(trim($groupBy))) {
+        // =========================================================================
+        // UNIVERSAL FIX: Auto-detect and inject missing tables/aliases from WHERE & ORDER BY
+        // =========================================================================
+        $missingFieldsAndAliases = [];
+
+        // 1. Dynamische Erkennung aus der WHERE-Klausel (z.B. "tabelle.uid")
+        if (!empty(trim((string)$where_clause))) {
+            if (preg_match_all('/([a-zA-Z0-9_`]+)\./', (string)$where_clause, $matches)) {
+                if (isset($matches[1])) {
+                    foreach ($matches[1] as $m) {
+                        $missingFieldsAndAliases[] = (string)$m;
+                    }
+                }
+            }
+        }
+
+        // 2. Dynamische Erkennung aus der ORDER BY-Klausel (z.B. "alias.sorting")
+        if (!empty(trim((string)$orderBy))) {
+            if (preg_match_all('/([a-zA-Z0-9_`]+)\./', (string)$orderBy, $matches)) {
+                if (isset($matches[1])) {
+                    foreach ($matches[1] as $m) {
+                        $missingFieldsAndAliases[] = (string)$m;
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // RADIKALE FILTERUNG VOR DEM DEBUGGING
+        // =========================================================================
+        $missingFieldsAndAliases = array_values(array_unique(array_filter($missingFieldsAndAliases)));
+
+        // Das ist deine Zeile 1801 aus dem Log
+        debug($missingFieldsAndAliases, 'TableDb: Alle gefundenen extrahierten Aliase');
+
+        // 3. Gefundene Aliase bereinigen und dynamisch als LEFT JOIN nachladen
+        if (!empty($missingFieldsAndAliases)) {
+            debug($firstAlias, 'TableDb: $firstAlias am Start von Schritt 3');
+            debug($firstTable, 'TableDb: $firstTable am Start von Schritt 3');
+            debug($joinedAliases, 'TableDb: $joinedAliases Array vor Schleife');
+
+            $uniqueAliases = array_unique($missingFieldsAndAliases);
+            foreach ($uniqueAliases as $rawAlias) {
+                $cleanAlias = trim(str_replace('`', '', $rawAlias));
+
+                // Basis-Ausschluss (Numerisch oder leer)
+                if (is_numeric($cleanAlias) || $cleanAlias === '') {
+                    continue;
+                }
+
+                // ABSOLUTER ALIAS-SCHUTZ:
+                if (
+                    strcasecmp($cleanAlias, trim($firstAlias)) === 0 ||
+                    strcasecmp($cleanAlias, trim($firstTable)) === 0 ||
+                    in_array($cleanAlias, $joinedAliases, true)
+                ) {
+                    debug($cleanAlias, 'TableDb: SKIPPED (Bereits registriert oder Haupttabelle)');
+                    continue;
+                }
+
+                debug($cleanAlias, 'TableDb: TRYING LEFT JOIN FOR ALIAS');
+
+                // =========================================================================
+                // STRICKTES TCA-FALLBACK MAPPING (Kein Hardcoding von cat/article!)
+                // =========================================================================
+                $realTableName = $cleanAlias;
+
+                // Falls der gefundene Name keine existierende Tabelle im System ist (TCA Check),
+                // lassen wir Doctrine bewusst scheitern, da der Aufrufer ein falsches SQL übergeben hat!
+                if (!isset($GLOBALS['TCA'][$realTableName])) {
+                    debug($realTableName, 'TableDb: WARNUNG - Extrahierter Alias existiert nicht als Tabelle im TCA! Abbruch des Joins.');
+                    continue;
+                }
+
+                // Generischer Left Join: Wird nur ausgeführt, wenn es eine echte Tabelle ist
+                $queryBuilder->leftJoin($firstAlias, $realTableName, $cleanAlias, '1 = 1');
+                $joinedAliases[] = $cleanAlias;
+            }
+        }
+
+        // Apply fields safely without breaking legacy aliases or aggregate functions (like count)
+        if (empty($fields) || $select_fields === '*') {
+            $queryBuilder->select($firstAlias . '.*');
+        } else {
+            $queryBuilder->select();
+
+            foreach ($fields as $field) {
+                $trimmedField = trim($field);
+
+                if (str_contains($trimmedField, '(') && str_contains($trimmedField, ')')) {
+                    $queryBuilder->addSelectLiteral($trimmedField);
+                }
+                elseif (preg_match('/^([a-zA-Z0-9_\.]+)\s+([a-zA-Z0-9_]+)$/', $trimmedField, $matches)) {
+                    $fieldParts = explode(' ', $trimmedField);
+                    $queryBuilder->addSelect($fieldParts[0] . ' AS ' . $fieldParts[1]);
+                } else {
+                    $queryBuilder->addSelect($trimmedField);
+                }
+            }
+        }
+
+        if ($isDistinct) {
+            $queryBuilder->distinct();
+        }
+
+        // Inject the WHERE clause snippet
+        if (!empty(trim((string)$where_clause))) {
+            $queryBuilder->where($queryBuilder->expr()->and($where_clause));
+        }
+
+        // Inject the ORDER BY clause snippet
+        if (!empty(trim((string)$orderBy))) {
+            $orderBy = rtrim(trim($orderBy), ',');
+
+            $orderParts = GeneralUtility::trimExplode(',', $orderBy, true);
+            foreach ($orderParts as $orderPart) {
+
+                $orderPartClean = trim(preg_replace('/\s+/', ' ', $orderPart));
+
+                if (str_contains($orderPartClean, '.')) {
+                    $partsBeforeDot = explode('.', $orderPartClean);
+                    $potentialAlias = trim(array_shift($partsBeforeDot));
+                    $potentialAlias = str_replace('`', '', $potentialAlias);
+
+                    if (!empty($potentialAlias) && !in_array($potentialAlias, $joinedAliases)) {
+                        continue;
+                    }
+                }
+
+                // Sicherer Split anhand des letzten Leerzeichens für ASC/DESC
+                $spacePos = strrpos($orderPartClean, ' ');
+                if ($spacePos !== false) {
+                    $direction = strtoupper(trim(substr($orderPartClean, $spacePos + 1)));
+                    $fieldOnly = trim(substr($orderPartClean, 0, $spacePos));
+
+                    if ($direction === 'ASC' || $direction === 'DESC') {
+                        $queryBuilder->addOrderBy($fieldOnly, $direction);
+                        continue;
+                    }
+                }
+
+                $queryBuilder->addOrderBy($orderPartClean);
+            }
+        }
+
+        // Inject the GROUP BY clause snippet
+        if (!empty(trim((string)$groupBy))) {
             $groupParts = GeneralUtility::trimExplode(',', $groupBy, true);
             $queryBuilder->groupBy(...$groupParts);
         }
 
-        // 4. Inject the LIMIT clause snippet
+        // Inject the LIMIT clause snippet
         if (!empty($limit)) {
             if (str_contains((string)$limit, ',')) {
                 $limitParts = GeneralUtility::trimExplode(',', $limit, true);
-                $queryBuilder->setFirstResult((int)$limitParts[0]);  // Offset
-                $queryBuilder->setMaxResults((int)$limitParts[1]);   // Count
+                $queryBuilder->setFirstResult((int)$limitParts[0]); // Offset
+                $queryBuilder->setMaxResults((int)$limitParts[1]); // Count
             } else {
                 $queryBuilder->setMaxResults((int)$limit);
             }
         }
 
         try {
-            // Execute the final query and return the Doctrine DBAL Result object
             return $queryBuilder->executeQuery();
-        } catch (DbalException $e) {
-            // Fallback: Return false if the database query fails or encounters syntax errors
+        } catch (\Doctrine\DBAL\Exception $E) {
+            error_log("### DBAL ERROR in Table exec_SELECTquery: " . $E->getMessage());
+            error_log("### FAILED SQL: " . $queryBuilder->getSQL());
             return false;
         }
+
+        debug('E');
     }
 
 
@@ -2259,9 +2443,18 @@ class TableDb
 
         // Process enableFields / restrictions
         if ($request !== null && ApplicationType::fromRequest($request)->isFrontend() && $table === 'pages') {
+            // Ersetzt das harte 'pages.deleted=0' durch die saubere Core-Restriktion für die Tabelle
+            $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+            $queryBuilder = $connectionPool->getQueryBuilderForTable('pages');
+
+            // Holt nur die SQL-Bedingung für "deleted = 0" aus dem Core-TCA
+            $deleteRestrictionExpression = $queryBuilder->getRestrictions()
+                ->getExpressionBuilder()
+                ->andX(...$queryBuilder->getRestrictions()->getExpressions('pages'));
+
             $pageRepository = GeneralUtility::makeInstance(PageRepository::class);
             // Note: In TYPO3 v13, getMultipleGroupsWhereClause might be a custom or refactored utility in your codebase
-            $query .= ' ' . $this->where_hid_del . $pageRepository->getMultipleGroupsWhereClause('pages.fe_group', 'pages');
+            $query .= ' ' . $deleteRestrictionExpression . ' ' . $pageRepository->getMultipleGroupsWhereClause('pages.fe_group', 'pages');
         } else {
             $query .= $this->enableFields();
         }
