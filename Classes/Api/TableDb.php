@@ -1261,81 +1261,98 @@ class TableDb
             return false;
         }
 
-        $result = '';
-        if ($clause == '') {
-            // nothing
-        } else {
-            $resultArray = [];
-            $parts = GeneralUtility::trimExplode(',', $clause);
-            $order = '';
-
-            foreach ($parts as $k => $fieldExpression) {
-                $this->checkField('order by or group by', $fieldExpression);
-                $spaceStartPos = strpos($fieldExpression, ' ');
-                $bracketStartPos = strpos($fieldExpression, '(');
-                $bracketEndPos = strpos($fieldExpression, ')');
-                $function = '';
-
-                if ($spaceStartPos === false) {
-                    $field = $fieldExpression;
-                    unset($order);
-                } else {
-                    $field = substr($fieldExpression, 0, $spaceStartPos);
-                    $order = substr($fieldExpression, $spaceStartPos);
-                }
-
-                if ($bracketStartPos !== false) {
-                    $expression = $field;
-                    $field = substr($expression, $bracketStartPos + 1);
-                    $function = substr($expression, 0, $bracketStartPos);
-                }
-
-                if ($bracketEndPos !== false) {
-                    $expression = $field;
-                    $fieldBracketEndPos = strpos($expression, ')');
-                    $field = substr($expression, 0, $fieldBracketEndPos);
-                }
-
-                $fieldArray = GeneralUtility::trimExplode('.', $field);
-
-                // no table has been specified?
-                if (
-                    (count($fieldArray) == 1) &&
-                    isset($this->tableFieldArray[$field]) &&
-                    is_array($this->tableFieldArray[$field])
-                ) { // TODO: check this
-                    $tableName = key($this->tableFieldArray[$field]);
-                } elseif (
-                    isset($this->noTCAFieldArray[$field]) &&
-                    strlen($this->noTCAFieldArray[$field]) ||
-                    isset($this->defaultFieldArray[$field])
-                ) {
-                    $tableName = $this->getName();
-                } else {
-                    $tableName = '';
-                }
-
-                // 1. Resolve the alias from the array if it exists and is not empty
-                $baseAlias = !empty($this->aliasArray[$tableName]) ? $this->aliasArray[$tableName] : '';
-
-                // 2. Append postfix only if a valid base alias was found
-                if (!empty($baseAlias) && !empty($aliasPostfix)) {
-                    $baseAlias .= $aliasPostfix;
-                }
-
-                // 3. Build the expression: use table prefix only if $baseAlias is not empty
-                if (!empty($baseAlias)) {
-                    $fieldTmp = $baseAlias . '.' . $field; // Result: "product.subtitle"
-                } else {
-                    $fieldTmp = $field; // Result: "subtitle" (No table prefix)
-                }
-
-                $resultArray[] = ($function ? $function . '(' : '') .
-                    $fieldTmp . ($bracketEndPos ? ')' : '') .
-                    (isset($order) && strlen($order) ? ' ' . $order : '');
-            }
-            $result = implode(',', $resultArray);
+        if (empty($clause)) {
+            return '';
         }
+
+        // ========================================================
+        // MIGRATIONS-FIX: KOMPLEXE SQL-FUNKTIONEN (Z.B. FIELD) SCHÜTZEN & DEDUPLIZIEREN
+        // ========================================================
+        if (preg_match('/^FIELD\s*\(\s*([^,]+)\s*,\s*(.+)\s*\)$/i', trim($clause), $matches)) {
+            $fieldExpression = trim($matches[1]); // z.B. "article.uid"
+            $idList = $matches[2];               // Die lange ID-Kette
+
+            // IDs vereinzeln, trimmen und Duplikate eliminieren
+            $ids = explode(',', $idList);
+            $ids = array_map('trim', $ids);
+            $ids = array_unique($ids);
+
+            // Sauberen, performanten FIELD-String für Doctrine DBAL 4 zurückgeben
+            $result = 'FIELD(' . $fieldExpression . ',' . implode(',', $ids) . ')';
+            return $result;
+        }
+
+        // Standard-Fallback für normale Spalten-Sortierungen
+        $result = '';
+        $resultArray = [];
+        $parts = GeneralUtility::trimExplode(',', $clause);
+
+        foreach ($parts as $k => $fieldExpression) {
+            $this->checkField('order by or group by', $fieldExpression);
+
+            $spaceStartPos = strpos($fieldExpression, ' ');
+            $bracketStartPos = strpos($fieldExpression, '(');
+            $bracketEndPos = strpos($fieldExpression, ')');
+            $function = '';
+
+            if ($spaceStartPos === false) {
+                $field = $fieldExpression;
+                $order = '';
+            } else {
+                $field = substr($fieldExpression, 0, $spaceStartPos);
+                $order = substr($fieldExpression, $spaceStartPos);
+            }
+
+            if ($bracketStartPos !== false) {
+                $expression = $field;
+                $field = substr($expression, $bracketStartPos + 1);
+                $function = substr($expression, 0, $bracketStartPos);
+            }
+
+            if ($bracketEndPos !== false) {
+                $expression = $field;
+                $fieldBracketEndPos = strpos($expression, ')');
+                $field = substr($expression, 0, $fieldBracketEndPos);
+            }
+
+            $fieldArray = GeneralUtility::trimExplode('.', $field);
+
+            if (
+                (count($fieldArray) == 1) &&
+                isset($this->tableFieldArray[$field]) &&
+                is_array($this->tableFieldArray[$field])
+            ) {
+                $tableName = key($this->tableFieldArray[$field]);
+            } elseif (
+                isset($this->noTCAFieldArray[$field]) &&
+                strlen($this->noTCAFieldArray[$field]) ||
+                isset($this->defaultFieldArray[$field])
+            ) {
+                $tableName = $this->getName();
+            } else {
+                $tableName = '';
+            }
+
+            $baseAlias = !empty($this->aliasArray[$tableName]) ? $this->aliasArray[$tableName] : '';
+
+            if (!empty($baseAlias) && !empty($aliasPostfix)) {
+                $baseAlias .= $aliasPostfix;
+            }
+
+            if (!empty($baseAlias)) {
+                $fieldTmp = $baseAlias . '.' . $field;
+            } else {
+                $fieldTmp = $field;
+            }
+
+            $resultArray[] = ($function ? $function . '(' : '') .
+                $fieldTmp . ($bracketEndPos ? ')' : '') .
+                (isset($order) && strlen($order) ? ' ' . $order : '');
+        }
+
+        $resultArray = array_map('trim', $resultArray);
+        $resultArray = array_unique($resultArray);
+        $result = implode(', ', $resultArray);
 
         return $result;
     }
@@ -1597,20 +1614,6 @@ class TableDb
             return false;
         }
 
-        debug('B');
-
-        // ==========================================
-        // STRATEGISCHES INITIAL-DEBUGGING
-        // ==========================================
-        debug([
-            'SELECT' => $select_fields,
-            'WHERE' => $where_clause,
-            'FROM' => $from,
-            'ORDERBY' => $orderBy,
-            'GROUPBY' => $groupBy,
-            'LIMIT' => $limit
-        ], 'TableDb: Rohe Eingangsparameter aus der ListView');
-
         $this->checkField('select', $select_fields);
         $this->checkField('where', $where_clause);
         $this->checkField('group by', $groupBy);
@@ -1719,9 +1722,6 @@ class TableDb
         // Handle custom multiple SELECT fields
         $fields = GeneralUtility::trimExplode(',', $select_fields, true);
 
-        // DEBUG: Wir schauen uns an, was die ListView als $tables uebergibt!
-        debug($tables, 'TableDb: Der komplette $tables-String vor dem Split in Teil 1');
-
         $rawTables = explode(',', $tables);
         $isFirst = true;
         $firstAlias = '';
@@ -1761,17 +1761,9 @@ class TableDb
                 }
             }
 
-            // DEBUG: Wir analysieren jede Tabelle, die Teil 1 an den QueryBuilder uebergibt
-            debug([
-                'tableName' => $tableName,
-                'alias' => $alias,
-                'isFirst' => $isFirst,
-                'already_in_joined' => in_array($alias, $joinedAliases, true)
-            ], 'TableDb: Schleifendurchlauf in Teil 1 fuer "' . $alias . '"');
-
             // FIX: Wenn das Alias bereits registriert wurde oder Müll ist, verhindern wir hier den Doctrine-Crash!
             if (in_array($alias, $joinedAliases, true) || strtoupper($tableName) === 'ON' || strtoupper($tableName) === 'LEFT') {
-                debug($alias, 'TableDb: WARNUNG - Alias doppelt oder SQL-Fragment in Teil 1 gefunden! Überspringe leftJoin.');
+                // debug($alias, 'TableDb: WARNUNG - Alias doppelt oder SQL-Fragment in Teil 1 gefunden! Überspringe leftJoin.');
                 continue;
             }
 
@@ -1821,15 +1813,8 @@ class TableDb
         // =========================================================================
         $missingFieldsAndAliases = array_values(array_unique(array_filter($missingFieldsAndAliases)));
 
-        // Das ist deine Zeile 1801 aus dem Log
-        debug($missingFieldsAndAliases, 'TableDb: Alle gefundenen extrahierten Aliase');
-
         // 3. Gefundene Aliase bereinigen und dynamisch als LEFT JOIN nachladen
         if (!empty($missingFieldsAndAliases)) {
-            debug($firstAlias, 'TableDb: $firstAlias am Start von Schritt 3');
-            debug($firstTable, 'TableDb: $firstTable am Start von Schritt 3');
-            debug($joinedAliases, 'TableDb: $joinedAliases Array vor Schleife');
-
             $uniqueAliases = array_unique($missingFieldsAndAliases);
             foreach ($uniqueAliases as $rawAlias) {
                 $cleanAlias = trim(str_replace('`', '', $rawAlias));
@@ -1845,11 +1830,9 @@ class TableDb
                     strcasecmp($cleanAlias, trim($firstTable)) === 0 ||
                     in_array($cleanAlias, $joinedAliases, true)
                 ) {
-                    debug($cleanAlias, 'TableDb: SKIPPED (Bereits registriert oder Haupttabelle)');
+                    // debug($cleanAlias, 'TableDb: SKIPPED (Bereits registriert oder Haupttabelle)');
                     continue;
                 }
-
-                debug($cleanAlias, 'TableDb: TRYING LEFT JOIN FOR ALIAS');
 
                 // =========================================================================
                 // STRICKTES TCA-FALLBACK MAPPING (Kein Hardcoding von cat/article!)
@@ -1899,38 +1882,48 @@ class TableDb
             $queryBuilder->where($queryBuilder->expr()->and($where_clause));
         }
 
-        // Inject the ORDER BY clause snippet
+                // Inject the ORDER BY clause snippet
         if (!empty(trim((string)$orderBy))) {
             $orderBy = rtrim(trim($orderBy), ',');
 
-            $orderParts = GeneralUtility::trimExplode(',', $orderBy, true);
-            foreach ($orderParts as $orderPart) {
+            // ========================================================
+            // MIGRATIONS-FIX: NATIVES DIREKT-ORDER-BY IM CONCRETE BUILDER
+            // ========================================================
+            if (preg_match('/^FIELD\s*\(.+\)$/i', $orderBy)) {
+                // Nutzt den ConcreteQueryBuilder direkt. Dieser verzichtet komplett auf das
+                // automatische Hinzufügen von Backticks und übergibt FIELD() 1:1 an MySQL!
+                $queryBuilder->getConcreteQueryBuilder()->orderBy($orderBy);
+            } else {
+                // Standard-Verarbeitung für normale Spalten
+                $orderParts = GeneralUtility::trimExplode(',', $orderBy, true);
+                foreach ($orderParts as $orderPart) {
 
-                $orderPartClean = trim(preg_replace('/\s+/', ' ', $orderPart));
+                    $orderPartClean = trim(preg_replace('/\s+/', ' ', $orderPart));
 
-                if (str_contains($orderPartClean, '.')) {
-                    $partsBeforeDot = explode('.', $orderPartClean);
-                    $potentialAlias = trim(array_shift($partsBeforeDot));
-                    $potentialAlias = str_replace('`', '', $potentialAlias);
+                    if (str_contains($orderPartClean, '.')) {
+                        $partsBeforeDot = explode('.', $orderPartClean);
+                        $potentialAlias = trim(array_shift($partsBeforeDot));
+                        $potentialAlias = str_replace('`', '', $potentialAlias);
 
-                    if (!empty($potentialAlias) && !in_array($potentialAlias, $joinedAliases)) {
-                        continue;
+                        if (!empty($potentialAlias) && !in_array($potentialAlias, $joinedAliases)) {
+                            continue;
+                        }
                     }
-                }
 
-                // Sicherer Split anhand des letzten Leerzeichens für ASC/DESC
-                $spacePos = strrpos($orderPartClean, ' ');
-                if ($spacePos !== false) {
-                    $direction = strtoupper(trim(substr($orderPartClean, $spacePos + 1)));
-                    $fieldOnly = trim(substr($orderPartClean, 0, $spacePos));
+                    // Sicherer Split anhand des letzten Leerzeichens für ASC/DESC
+                    $spacePos = strrpos($orderPartClean, ' ');
+                    if ($spacePos !== false) {
+                        $direction = strtoupper(trim(substr($orderPartClean, $spacePos + 1)));
+                        $fieldOnly = trim(substr($orderPartClean, 0, $spacePos));
 
-                    if ($direction === 'ASC' || $direction === 'DESC') {
-                        $queryBuilder->addOrderBy($fieldOnly, $direction);
-                        continue;
+                        if ($direction === 'ASC' || $direction === 'DESC') {
+                            $queryBuilder->addOrderBy($fieldOnly, $direction);
+                            continue;
+                        }
                     }
-                }
 
-                $queryBuilder->addOrderBy($orderPartClean);
+                    $queryBuilder->addOrderBy($orderPartClean);
+                }
             }
         }
 
@@ -1954,12 +1947,10 @@ class TableDb
         try {
             return $queryBuilder->executeQuery();
         } catch (\Doctrine\DBAL\Exception $E) {
-            error_log("### DBAL ERROR in Table exec_SELECTquery: " . $E->getMessage());
+            error_log("### table library notice: DBAL ERROR in table exec_SELECTquery: " . $E->getMessage());
             error_log("### FAILED SQL: " . $queryBuilder->getSQL());
             return false;
         }
-
-        debug('E');
     }
 
 
