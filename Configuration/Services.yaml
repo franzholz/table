@@ -1,0 +1,15 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false       # Hält die restlichen Services aus Performancegründen privat
+
+  # Das offizielle Namespacing der Table-Library-Extension
+  JambageCom\Table\:
+    resource: '../Classes/*'
+
+  # FIX: TableDb explizit als PUBLIC und PROTOTYPE deklarieren
+  JambageCom\Table\Api\TableDb:
+    shared: false       # Erzeugt jedes Mal eine frische Instanz (Prototype)
+    public: true        # Erlaubt den Zugriff über GeneralUtility::getContainer()->get()
+
